@@ -3,8 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { tiers } from '../../data/tierData';
-import { getTierPricing, getCurrencyInfo } from '../../config/subscriptionConfig';
+import { tiers, getCurrencyInfo } from '../../config/subscription';
 import LaunchNotificationSignup from '../common/LaunchNotificationSignup';
 
 const TierSelection = ({ onComplete }) => {
@@ -14,7 +13,7 @@ const TierSelection = ({ onComplete }) => {
   const navigate = useNavigate();
 
   // Get currency info
-  const { currency, symbol: currencySymbol } = getCurrencyInfo();
+  const { code: currency, symbol: currencySymbol } = getCurrencyInfo();
 
   const handleCancel = async () => {
     try {
@@ -60,7 +59,6 @@ const TierSelection = ({ onComplete }) => {
 
   const currentTier = tiers[currentIndex];
   const IconComponent = currentTier.icon;
-  const tierPricing = getTierPricing(currentTier.id);
 
   return (
     <div className="space-y-6">
@@ -97,11 +95,11 @@ const TierSelection = ({ onComplete }) => {
               </h3>
               <div className="mb-4">
                 <span className={`text-3xl font-bold ${currentTier.textColor}`}>
-                  {currentTier.id === 'free' ? 'Free' : `${currencySymbol}${tierPricing.price.toFixed(2)}`}
+                  {currentTier.priceDisplay}
                 </span>
                 {currentTier.id !== 'free' && (
                   <span className={`text-sm ${currentTier.textColor} opacity-70 ml-1`}>
-                    /year
+                    /{currentTier.period}
                   </span>
                 )}
               </div>
@@ -109,7 +107,7 @@ const TierSelection = ({ onComplete }) => {
 
             {/* Features */}
             <div className="space-y-3">
-              {currentTier.features.map((feature, featureIndex) => (
+              {currentTier.featureList.map((feature, featureIndex) => (
                 <div key={featureIndex} className="flex items-start gap-3">
                   <Check className="text-green-500 flex-shrink-0 mt-1" size={16} />
                   <span className={`text-sm ${currentTier.textColor} opacity-80`}>

@@ -14,7 +14,7 @@ const WishlistView = () => {
   const [showAddForm, setShowAddForm] = useState(false);
 
   // Predefined options for dropdowns
-  const brandOptions = ['Citadel Colour', 'Army Painter'];
+  const brandOptions = ['Citadel Paints Colour', 'Army Painter'];
   const typeOptions = ['Layer', 'Dry', 'Technical', 'Acrylic', 'Wash', 'Metallic', 'Effects', 'Base', 'Shade'];
 
   // Form state for adding new wishlist item

@@ -1,5 +1,5 @@
-// config/subscriptionConfig.js - Complete subscription tier configuration with dynamic pricing
-// This centralizes all subscription limits and features across the app
+// config/subscriptionConfig.js - Subscription Tiers and Feature Access Control
+import { Check, Crown, Zap, Trophy } from 'lucide-react';
 
 export const SUBSCRIPTION_TIERS = {
   FREE: 'free',
@@ -8,326 +8,396 @@ export const SUBSCRIPTION_TIERS = {
   BATTLE: 'battle'
 };
 
-export const TIER_LIMITS = {
-  [SUBSCRIPTION_TIERS.FREE]: {
-    // Core limits
-    paints: 25,
-    projects: 3,
+// Feature definitions
+export const FEATURES = {
+  // Core app features
+  PAINTS: 'paints',
+  PROJECTS: 'projects',
+  PHOTOS: 'photos',
 
-    // Project-specific limits
-    photosPerProject: 3,
-    stepsPerProject: 5,
-    paintAssignmentsPerProject: 10,
-    notesPerProject: 5,
+  // Community features
+  COMMUNITY_READ: 'communityRead',
+  COMMUNITY_POST: 'communityPost',
+  COMMUNITY_COMMENT: 'communityComment',
+  COMMUNITY_LIKE: 'communityLike',
+  COMMUNITY_MESSAGE: 'communityMessage',
+  COMMUNITY_CREATE_GROUPS: 'communityCreateGroups',
 
-    // Features
-    communityAccess: true,
-    paintCatalog: 'basic',
-
-    // Exclusive features
-    armyTracker: false,
-    battleReports: false,
-    projectSharing: false,
-    projectLikes: false,
-    projectComments: false
-  },
-
-  [SUBSCRIPTION_TIERS.CASUAL]: {
-    // Core limits
-    paints: 150,
-    projects: 10,
-
-    // Project-specific limits
-    photosPerProject: 10,
-    stepsPerProject: 15,
-    paintAssignmentsPerProject: 30,
-    notesPerProject: 15,
-
-    // Features
-    communityAccess: true,
-    paintCatalog: 'full',
-    projectSharing: true,
-    projectLikes: true,
-    projectComments: true,
-
-    // Exclusive features
-    armyTracker: false,
-    battleReports: false
-  },
-
-  [SUBSCRIPTION_TIERS.PRO]: {
-    // Core limits
-    paints: 300,
-    projects: 25,
-
-    // Project-specific limits
-    photosPerProject: 30,
-    stepsPerProject: 50,
-    paintAssignmentsPerProject: 100,
-    notesPerProject: 50,
-
-    // Features
-    communityAccess: true,
-    paintCatalog: 'full',
-    projectSharing: true,
-    projectLikes: true,
-    projectComments: true,
-
-    // Exclusive features
-    armyTracker: false,
-    battleReports: false
-  },
-
-  [SUBSCRIPTION_TIERS.BATTLE]: {
-    // Core limits
-    paints: 1000,
-    projects: 50,
-
-    // Project-specific limits
-    photosPerProject: 50,
-    stepsPerProject: 100,
-    paintAssignmentsPerProject: 250,
-    notesPerProject: 100,
-
-    // Features
-    communityAccess: true,
-    paintCatalog: 'full',
-    projectSharing: true,
-    projectLikes: true,
-    projectComments: true,
-
-    // Exclusive features - Battle Ready only
-    armyTracker: true,
-    battleReports: true
-  }
+  // Advanced features
+  ADVANCED_ANALYTICS: 'advancedAnalytics',
+  EXPORT_DATA: 'exportData',
+  PRIORITY_SUPPORT: 'prioritySupport'
 };
 
-// Base pricing in EUR
-const BASE_PRICING_EUR = {
-  [SUBSCRIPTION_TIERS.FREE]: 0,
-  [SUBSCRIPTION_TIERS.CASUAL]: 4.99,
-  [SUBSCRIPTION_TIERS.PRO]: 9.99,
-  [SUBSCRIPTION_TIERS.BATTLE]: 14.99
-};
-
-// Currency conversion rates and symbols
-const CURRENCY_CONFIG = {
-  EUR: {
-    symbol: '€',
-    multiplier: 1.0, // Base currency
-    countries: ['AT', 'BE', 'CY', 'EE', 'FI', 'FR', 'DE', 'GR', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PT', 'SK', 'SI', 'ES'],
-    timezones: ['Europe/Berlin', 'Europe/Paris', 'Europe/Rome', 'Europe/Madrid', 'Europe/Amsterdam', 'Europe/Brussels', 'Europe/Vienna', 'Europe/Zurich']
-  },
-  GBP: {
-    symbol: '£',
-    multiplier: 1.0, // Same as EUR
-    countries: ['GB'],
-    timezones: ['Europe/London']
-  },
-  USD: {
-    symbol: '$',
-    multiplier: 1.0, // Will be calculated to rounded .99 endings
-    isDefault: true // Default currency for rest of world
-  }
-};
-
-// Currency detection function
-const detectUserCurrency = () => {
-  try {
-    const userLocale = navigator.language || 'en-US';
-    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-    // Extract country code from locale (e.g., 'en-GB' -> 'GB')
-    const countryCode = userLocale.includes('-') ? userLocale.split('-')[1] : null;
-
-    // Check for EUR
-    if (countryCode && CURRENCY_CONFIG.EUR.countries.includes(countryCode)) {
-      return 'EUR';
-    }
-
-    if (CURRENCY_CONFIG.EUR.timezones.some(tz => userTimezone.includes(tz.split('/')[1]))) {
-      return 'EUR';
-    }
-
-    // Check for GBP
-    if (countryCode === 'GB' || userTimezone.includes('London')) {
-      return 'GBP';
-    }
-
-    // Default to USD for everyone else
-    return 'USD';
-  } catch (error) {
-    console.error('Error detecting currency:', error);
-    return 'USD'; // Default fallback
-  }
-};
-
-// Calculate pricing for different currencies
-const calculateTierPricing = (currency) => {
-  const pricing = {};
-
-  Object.keys(BASE_PRICING_EUR).forEach(tier => {
-    const basePrice = BASE_PRICING_EUR[tier];
-
-    if (basePrice === 0) {
-      pricing[tier] = {
-        price: 0,
-        period: 'forever',
-        displayPrice: 'Free',
-        symbol: CURRENCY_CONFIG[currency].symbol
-      };
-    } else {
-      let finalPrice;
-
-      if (currency === 'EUR' || currency === 'GBP') {
-        finalPrice = basePrice; // Same price for EUR and GBP
-      } else {
-        // USD - convert and round to .99 endings
-        const convertedPrice = basePrice * 1.1; // Approximate conversion rate
-        if (convertedPrice <= 5.5) finalPrice = 5.99;
-        else if (convertedPrice <= 11) finalPrice = 10.99;
-        else finalPrice = 16.99;
-      }
-
-      pricing[tier] = {
-        price: finalPrice,
-        period: 'year',
-        displayPrice: `${CURRENCY_CONFIG[currency].symbol}${finalPrice.toFixed(2)}/year`,
-        symbol: CURRENCY_CONFIG[currency].symbol
-      };
-    }
-  });
-
-  return pricing;
-};
-
-// Dynamic pricing getter
-export const getTierPricing = (tier, currency = null) => {
-  const detectedCurrency = currency || detectUserCurrency();
-  const pricing = calculateTierPricing(detectedCurrency);
-  return pricing[tier] || pricing[SUBSCRIPTION_TIERS.FREE];
-};
-
-// Get all tier pricing for a currency
-export const getAllTierPricing = (currency = null) => {
-  const detectedCurrency = currency || detectUserCurrency();
-  return calculateTierPricing(detectedCurrency);
-};
-
-// Get currency info
-export const getCurrencyInfo = (currency = null) => {
-  const detectedCurrency = currency || detectUserCurrency();
+// Currency information
+export const getCurrencyInfo = () => {
   return {
-    currency: detectedCurrency,
-    symbol: CURRENCY_CONFIG[detectedCurrency].symbol
+    symbol: '£',
+    code: 'GBP',
+    position: 'before' // symbol position relative to amount
   };
 };
 
-export const TIER_DISPLAY_NAMES = {
-  [SUBSCRIPTION_TIERS.FREE]: 'Free',
-  [SUBSCRIPTION_TIERS.CASUAL]: 'Casual Hobbyist',
-  [SUBSCRIPTION_TIERS.PRO]: 'Pro',
-  [SUBSCRIPTION_TIERS.BATTLE]: 'Battle Ready'
-};
+// Tier configurations with limits and permissions
+export const TIER_CONFIG = {
+  [SUBSCRIPTION_TIERS.FREE]: {
+    id: 'free',
+    name: 'Free',
+    price: 0,
+    priceDisplay: '£0',
+    period: 'forever',
+    icon: Check,
+    color: 'tier-free',
+    bgColor: 'bg-white',
+    textColor: 'text-gray-900',
+    popular: false,
+    limits: {
+      paints: 25,
+      projects: 2,
+      photosPerProject: 3,
+      achievementHistory: 30 // days
+    },
+    features: {
+      // Core features - limited
+      [FEATURES.PAINTS]: true,
+      [FEATURES.PROJECTS]: true,
+      [FEATURES.PHOTOS]: true,
 
-export const TIER_DESCRIPTIONS = {
-  [SUBSCRIPTION_TIERS.FREE]: 'Perfect for getting started with miniature painting',
-  [SUBSCRIPTION_TIERS.CASUAL]: 'Great for hobbyists with multiple projects',
-  [SUBSCRIPTION_TIERS.PRO]: 'Professional features for serious painters',
-  [SUBSCRIPTION_TIERS.BATTLE]: 'Complete toolkit with army tracking and battle reports'
-};
+      // Community features - read only
+      [FEATURES.COMMUNITY_READ]: true,
+      [FEATURES.COMMUNITY_POST]: false,
+      [FEATURES.COMMUNITY_COMMENT]: false,
+      [FEATURES.COMMUNITY_LIKE]: false,
+      [FEATURES.COMMUNITY_MESSAGE]: false,
+      [FEATURES.COMMUNITY_CREATE_GROUPS]: false,
 
-export const TIER_ICONS = {
-  [SUBSCRIPTION_TIERS.FREE]: 'check-circle',
-  [SUBSCRIPTION_TIERS.CASUAL]: 'zap',
-  [SUBSCRIPTION_TIERS.PRO]: 'crown',
-  [SUBSCRIPTION_TIERS.BATTLE]: 'trophy'
-};
+      // Advanced features - none
+      [FEATURES.ADVANCED_ANALYTICS]: false,
+      [FEATURES.EXPORT_DATA]: false,
+      [FEATURES.PRIORITY_SUPPORT]: false
+    },
+    featureList: [
+      '25 paint inventory slots',
+      '2 project tracking',
+      '3 photos per project',
+      'View community projects',
+      'Basic paint catalogue'
+    ]
+  },
 
-export const TIER_COLORS = {
-  [SUBSCRIPTION_TIERS.FREE]: 'gray',
-  [SUBSCRIPTION_TIERS.CASUAL]: 'blue',
-  [SUBSCRIPTION_TIERS.PRO]: 'purple',
-  [SUBSCRIPTION_TIERS.BATTLE]: 'amber'
-};
+  [SUBSCRIPTION_TIERS.CASUAL]: {
+    id: 'casual',
+    name: 'Casual Hobbyist',
+    price: 4.99,
+    priceDisplay: '£4.99',
+    period: 'per year',
+    icon: Zap,
+    color: 'tier-casual',
+    bgColor: 'bg-blue-50',
+    textColor: 'text-blue-900',
+    popular: true,
+    limits: {
+      paints: 150,
+      projects: 10,
+      photosPerProject: 10,
+      achievementHistory: 90 // days
+    },
+    features: {
+      // Core features - expanded
+      [FEATURES.PAINTS]: true,
+      [FEATURES.PROJECTS]: true,
+      [FEATURES.PHOTOS]: true,
 
-// Helper functions
-export const getTierLimits = (tier) => {
-  return TIER_LIMITS[tier] || TIER_LIMITS[SUBSCRIPTION_TIERS.FREE];
-};
+      // Community features - basic interaction
+      [FEATURES.COMMUNITY_READ]: true,
+      [FEATURES.COMMUNITY_POST]: true,
+      [FEATURES.COMMUNITY_COMMENT]: true,
+      [FEATURES.COMMUNITY_LIKE]: true,
+      [FEATURES.COMMUNITY_MESSAGE]: false, // No messaging in casual
+      [FEATURES.COMMUNITY_CREATE_GROUPS]: false,
 
-export const getTierDisplayName = (tier) => {
-  return TIER_DISPLAY_NAMES[tier] || 'Unknown';
-};
+      // Advanced features - basic
+      [FEATURES.ADVANCED_ANALYTICS]: false,
+      [FEATURES.EXPORT_DATA]: true,
+      [FEATURES.PRIORITY_SUPPORT]: false
+    },
+    featureList: [
+      '150 paint inventory slots',
+      '10 project tracking',
+      '10 photos per project',
+      'Full community access',
+      'Share your projects',
+      'Like and comment on projects'
+    ]
+  },
 
-export const getNextTier = (currentTier) => {
-  const tiers = Object.values(SUBSCRIPTION_TIERS);
-  const currentIndex = tiers.indexOf(currentTier);
-  return currentIndex < tiers.length - 1 ? tiers[currentIndex + 1] : null;
-};
+  [SUBSCRIPTION_TIERS.PRO]: {
+    id: 'pro',
+    name: 'Pro',
+    price: 9.99,
+    priceDisplay: '£9.99',
+    period: 'per year',
+    icon: Crown,
+    color: 'tier-pro',
+    bgColor: 'bg-purple-50',
+    textColor: 'text-purple-900',
+    popular: false,
+    limits: {
+      paints: 300,
+      projects: 25,
+      photosPerProject: 30,
+      achievementHistory: 365 // days
+    },
+    features: {
+      // Core features - full access
+      [FEATURES.PAINTS]: true,
+      [FEATURES.PROJECTS]: true,
+      [FEATURES.PHOTOS]: true,
 
-export const canAccessFeature = (tier, feature) => {
-  const limits = getTierLimits(tier);
-  return limits[feature] === true;
-};
+      // Community features - full social
+      [FEATURES.COMMUNITY_READ]: true,
+      [FEATURES.COMMUNITY_POST]: true,
+      [FEATURES.COMMUNITY_COMMENT]: true,
+      [FEATURES.COMMUNITY_LIKE]: true,
+      [FEATURES.COMMUNITY_MESSAGE]: true,
+      [FEATURES.COMMUNITY_CREATE_GROUPS]: true,
 
-export const isWithinLimit = (tier, limitType, currentUsage, projectData = null) => {
-  const limits = getTierLimits(tier);
+      // Advanced features - analytics
+      [FEATURES.ADVANCED_ANALYTICS]: true,
+      [FEATURES.EXPORT_DATA]: true,
+      [FEATURES.PRIORITY_SUPPORT]: false
+    },
+    featureList: [
+      '300 paint inventory slots',
+      '25 project tracking',
+      '30 photos per project',
+      'Full community access',
+      'Direct messaging',
+      'Create groups',
+      'Advanced analytics'
+    ]
+  },
 
-  switch (limitType) {
-    case 'paints':
-      return currentUsage < limits.paints;
-    case 'projects':
-      return currentUsage < limits.projects;
-    case 'photosPerProject':
-      if (projectData) {
-        const projectPhotos = (projectData.photoURLs?.length || 0) +
-                             (projectData.photos?.gallery?.length || 0);
-        return projectPhotos < limits.photosPerProject;
-      }
-      return true;
-    case 'stepsPerProject':
-      if (projectData) {
-        const projectSteps = projectData.steps?.length || 0;
-        return projectSteps < limits.stepsPerProject;
-      }
-      return true;
-    case 'paintAssignmentsPerProject':
-      if (projectData) {
-        let projectAssignments = 0;
-        if (projectData.steps) {
-          projectData.steps.forEach(step => {
-            projectAssignments += step.paints?.length || 0;
-          });
-        }
-        return projectAssignments < limits.paintAssignmentsPerProject;
-      }
-      return true;
-    case 'notesPerProject':
-      if (projectData) {
-        const projectNotes = projectData.projectNotes?.length || 0;
-        return projectNotes < limits.notesPerProject;
-      }
-      return true;
-    default:
-      return true;
+  [SUBSCRIPTION_TIERS.BATTLE]: {
+    id: 'battle',
+    name: 'Battle Ready',
+    price: 14.99,
+    priceDisplay: '£14.99',
+    period: 'per year',
+    icon: Trophy,
+    color: 'tier-battle',
+    bgColor: 'bg-amber-50',
+    textColor: 'text-amber-900',
+    popular: false,
+    limits: {
+      paints: 1000,
+      projects: 50,
+      photosPerProject: 50,
+      achievementHistory: -1 // Unlimited
+    },
+    features: {
+      // Core features - unlimited
+      [FEATURES.PAINTS]: true,
+      [FEATURES.PROJECTS]: true,
+      [FEATURES.PHOTOS]: true,
+
+      // Community features - everything
+      [FEATURES.COMMUNITY_READ]: true,
+      [FEATURES.COMMUNITY_POST]: true,
+      [FEATURES.COMMUNITY_COMMENT]: true,
+      [FEATURES.COMMUNITY_LIKE]: true,
+      [FEATURES.COMMUNITY_MESSAGE]: true,
+      [FEATURES.COMMUNITY_CREATE_GROUPS]: true,
+
+      // Advanced features - everything
+      [FEATURES.ADVANCED_ANALYTICS]: true,
+      [FEATURES.EXPORT_DATA]: true,
+      [FEATURES.PRIORITY_SUPPORT]: true
+    },
+    featureList: [
+      '1000 paint inventory slots',
+      '50 project tracking',
+      '50 photos per project',
+      'Full community access',
+      'Direct messaging',
+      'Create groups',
+      'Army tracker & battle reports',
+      'Priority support'
+    ]
   }
+};
+
+// Compatibility export for existing tierData.js usage
+export const tiers = Object.values(TIER_CONFIG);
+
+/**
+ * Get tier configuration
+ * @param {string} tier - Subscription tier
+ * @returns {Object} Tier configuration
+ */
+export const getTierConfig = (tier) => {
+  return TIER_CONFIG[tier] || TIER_CONFIG[SUBSCRIPTION_TIERS.FREE];
+};
+
+/**
+ * Get tier limits
+ * @param {string} tier - Subscription tier
+ * @returns {Object} Tier limits
+ */
+export const getTierLimits = (tier) => {
+  const config = getTierConfig(tier);
+  return config.limits;
+};
+
+/**
+ * Check if user has access to a feature
+ * @param {string} tier - User's subscription tier
+ * @param {string} feature - Feature to check
+ * @returns {boolean} Whether user has access
+ */
+export const hasFeatureAccess = (tier, feature) => {
+  const config = getTierConfig(tier);
+  return config.features[feature] === true;
+};
+
+/**
+ * Check if user can access community features
+ * @param {string} tier - User's subscription tier
+ * @param {string} feature - Community feature to check
+ * @returns {boolean} Whether user has access
+ */
+export const canAccessCommunityFeature = (tier, feature) => {
+  // Map short feature names to full feature constants
+  const featureMap = {
+    read: FEATURES.COMMUNITY_READ,
+    post: FEATURES.COMMUNITY_POST,
+    comment: FEATURES.COMMUNITY_COMMENT,
+    like: FEATURES.COMMUNITY_LIKE,
+    message: FEATURES.COMMUNITY_MESSAGE,
+    createGroups: FEATURES.COMMUNITY_CREATE_GROUPS
+  };
+
+  const fullFeatureName = featureMap[feature] || feature;
+  return hasFeatureAccess(tier, fullFeatureName);
+};
+
+/**
+ * Get all features available to a tier
+ * @param {string} tier - Subscription tier
+ * @returns {Array} Array of available features
+ */
+export const getAvailableFeatures = (tier) => {
+  const config = getTierConfig(tier);
+  return Object.keys(config.features).filter(feature => config.features[feature]);
+};
+
+/**
+ * Check if user has reached a limit
+ * @param {string} tier - User's subscription tier
+ * @param {string} limitType - Type of limit to check
+ * @param {number} currentUsage - Current usage count
+ * @returns {Object} Limit status
+ */
+export const checkLimit = (tier, limitType, currentUsage) => {
+  const limits = getTierLimits(tier);
+  const limit = limits[limitType];
+
+  if (limit === -1) {
+    return {
+      hasReachedLimit: false,
+      isUnlimited: true,
+      remaining: -1,
+      total: -1
+    };
+  }
+
+  const hasReachedLimit = currentUsage >= limit;
+  const remaining = Math.max(0, limit - currentUsage);
+
+  return {
+    hasReachedLimit,
+    isUnlimited: false,
+    remaining,
+    total: limit,
+    usage: currentUsage,
+    percentUsed: (currentUsage / limit) * 100
+  };
+};
+
+/**
+ * Get upgrade recommendations based on usage
+ * @param {string} currentTier - Current subscription tier
+ * @param {Object} usage - Current usage statistics
+ * @returns {Object} Upgrade recommendations
+ */
+export const getUpgradeRecommendations = (currentTier, usage = {}) => {
+  const currentConfig = getTierConfig(currentTier);
+  const recommendations = [];
+
+  // Check each limit type
+  Object.keys(currentConfig.limits).forEach(limitType => {
+    const currentUsage = usage[limitType] || 0;
+    const limitStatus = checkLimit(currentTier, limitType, currentUsage);
+
+    if (limitStatus.percentUsed > 80) {
+      recommendations.push({
+        type: 'limit_warning',
+        limitType,
+        percentUsed: limitStatus.percentUsed,
+        message: `You're using ${Math.round(limitStatus.percentUsed)}% of your ${limitType} limit`
+      });
+    }
+
+    if (limitStatus.hasReachedLimit) {
+      recommendations.push({
+        type: 'limit_reached',
+        limitType,
+        message: `You've reached your ${limitType} limit`
+      });
+    }
+  });
+
+  // Suggest next tier if they have warnings
+  if (recommendations.length > 0 && currentTier !== SUBSCRIPTION_TIERS.BATTLE) {
+    const tierOrder = [
+      SUBSCRIPTION_TIERS.FREE,
+      SUBSCRIPTION_TIERS.CASUAL,
+      SUBSCRIPTION_TIERS.PRO,
+      SUBSCRIPTION_TIERS.BATTLE
+    ];
+
+    const currentIndex = tierOrder.indexOf(currentTier);
+    if (currentIndex < tierOrder.length - 1) {
+      const nextTier = tierOrder[currentIndex + 1];
+      const nextConfig = getTierConfig(nextTier);
+
+      recommendations.push({
+        type: 'upgrade_suggestion',
+        suggestedTier: nextTier,
+        tierName: nextConfig.name,
+        price: nextConfig.price,
+        message: `Upgrade to ${nextConfig.name} for increased limits and more features`
+      });
+    }
+  }
+
+  return {
+    hasRecommendations: recommendations.length > 0,
+    recommendations,
+    currentTier,
+    currentTierName: currentConfig.name
+  };
 };
 
 export default {
   SUBSCRIPTION_TIERS,
-  TIER_LIMITS,
-  TIER_DISPLAY_NAMES,
-  TIER_DESCRIPTIONS,
-  TIER_ICONS,
-  TIER_COLORS,
+  FEATURES,
+  TIER_CONFIG,
+  getTierConfig,
   getTierLimits,
-  getTierDisplayName,
-  getTierPricing,
-  getAllTierPricing,
-  getCurrencyInfo,
-  getNextTier,
-  canAccessFeature,
-  isWithinLimit,
-  detectUserCurrency
+  hasFeatureAccess,
+  canAccessCommunityFeature,
+  getAvailableFeatures,
+  checkLimit,
+  getUpgradeRecommendations
 };

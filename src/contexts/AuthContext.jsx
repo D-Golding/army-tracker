@@ -13,7 +13,7 @@ import {
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase.js';
 import { queryClient } from '../lib/queryClient.js';
-import { getTierLimits } from '../config/subscriptionConfig.js';
+import { getTierLimits } from '../config/subscription';
 import { GAMIFICATION_SCHEMA } from '../config/achievementConfig.js';
 
 // Authentication States

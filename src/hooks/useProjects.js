@@ -1,4 +1,4 @@
-// hooks/useProjects.js - Updated with Achievement Triggers
+// hooks/useProjects.js - Updated with Achievement Triggers AND MISSING useProject HOOK
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { queryKeys, invalidateProjectQueries } from '../lib/queryClient';
 import { useGamificationOperations } from './useGamification';
@@ -29,7 +29,7 @@ import {
   updateProjectStep,
   deleteProjectStep,
   reorderProjectSteps,
-} from '../services/projectService';
+} from '../services/projects/index.js';
 
 // =====================================
 // PROJECT LIST QUERIES
@@ -57,12 +57,13 @@ export const useProjects = (filter = 'all') => {
   });
 };
 
-// Single project query by ID
+// Single project query by ID - THIS WAS MISSING!
 export const useProject = (projectId) => {
   return useQuery({
     queryKey: queryKeys.projects.detail(projectId),
     queryFn: () => findProjectById(projectId),
     enabled: !!projectId, // Only run if projectId is provided
+    staleTime: 1000 * 60 * 2, // Cache for 2 minutes
     meta: {
       errorMessage: 'Failed to load project'
     }
@@ -96,51 +97,22 @@ export const useProjectPaintCheck = (projectName) => {
 // PROJECT MUTATIONS WITH GAMIFICATION
 // =====================================
 
-// Create project mutation - Updated with achievement triggers
+// Create project mutation - FIXED to use new createProject signature
 export const useCreateProject = () => {
   const { triggerForAction } = useGamificationOperations();
 
   return useMutation({
     mutationFn: async (projectData) => {
-      // Handle legacy format for backwards compatibility
-      let requiredPaints = [];
-      if (projectData.requiredPaints) {
-        if (typeof projectData.requiredPaints === 'string') {
-          requiredPaints = projectData.requiredPaints
-            .split(',')
-            .map(paint => paint.trim())
-            .filter(paint => paint.length > 0);
-        } else if (Array.isArray(projectData.requiredPaints)) {
-          requiredPaints = projectData.requiredPaints;
-        }
-      }
-
-      let photoURLs = [];
-      if (projectData.photoURLs) {
-        if (typeof projectData.photoURLs === 'string') {
-          photoURLs = projectData.photoURLs
-            .split(',')
-            .map(url => url.trim())
-            .filter(url => url.length > 0);
-        } else if (Array.isArray(projectData.photoURLs)) {
-          photoURLs = projectData.photoURLs;
-        }
-      }
-
-      const result = await createProject(
-        projectData.name,
-        requiredPaints,
-        projectData.description || '',
-        photoURLs,
-        projectData.status || 'upcoming',
-        projectData.difficulty || 'beginner' // Include difficulty
-      );
+      // Call the new createProject function that accepts the full projectData object
+      const result = await createProject(projectData);
 
       // 🎉 TRIGGER ACHIEVEMENT CHECK FOR PROJECT CREATION
       try {
         await triggerForAction('project_created', {
           projectName: projectData.name,
-          difficulty: projectData.difficulty || 'beginner'
+          difficulty: projectData.difficulty || 'beginner',
+          manufacturer: projectData.manufacturer,
+          game: projectData.game
         });
         console.log('🎯 Achievement check triggered for project creation');
       } catch (error) {

@@ -10,7 +10,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase.js';
 import { auth } from '../firebase.js';
-import { newPaint } from './paintService.js';
+import { newPaint } from './paints/index.js';
 
 // Helper function to get current user ID
 const getCurrentUserId = () => {

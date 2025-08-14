@@ -1,5 +1,5 @@
 // App.jsx - Professional Navigation with Authentication States, Error Boundaries, and React Query
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
@@ -11,76 +11,41 @@ import AuthPage from './components/auth/AuthPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import MainLayout from './components/layouts/MainLayout';
 import AdminLayout from './components/layouts/AdminLayout';
-import PaintList from './components/PaintList';
+import PaintList from './components/paints/PaintList';
 import ProjectList from "./components/projects/ProjectList";
 import ProjectDetailView from './components/projects/ProjectDetailView';
+import AddProjectPage from './pages/AddProjectPage';
+import AddStepPage from './pages/AddStepPage';
+import AddPhotosPage from './pages/AddPhotosPage';
 import AdminDashboard from './components/AdminDashboard';
 import PaymentForm from './components/payment/PaymentForm';
 import ForgotPasswordPage from './components/auth/ForgotPasswordPage';
 import NotificationManager from './components/NotificationManager';
+import AccountRecovery from './components/AccountRecovery';
 
-// Import Dashboard Components
+// Import Dashboard Layout (the real one)
 import UserDashboardLayout from './components/dashboard/UserDashboardLayout';
-import ProfileInfo from './components/dashboard/Profile/ProfileInfo';
 
-// Dashboard Section Components
-const DashboardProfile = () => <ProfileInfo />;
-
-const DashboardPrivacy = () => (
-  <div className="space-y-6">
-    <div className="card-base card-padding-lg">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-        Privacy Settings
-      </h3>
-      <p className="text-gray-600 dark:text-gray-400">
-        This is where the ConsentManager, MailingPreferences, and PrivacySettings components will be displayed.
-      </p>
-    </div>
-  </div>
-);
-
-const DashboardSubscription = () => (
-  <div className="space-y-6">
-    <div className="card-base card-padding-lg">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-        Subscription Management
-      </h3>
-      <p className="text-gray-600 dark:text-gray-400">
-        This is where the TierOverview, UsageAnalytics, and BillingInfo components will be displayed.
-      </p>
-    </div>
-  </div>
-);
-
-const DashboardAchievements = () => (
-  <div className="space-y-6">
-    <div className="card-base card-padding-lg">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-        Achievements & Progress
-      </h3>
-      <p className="text-gray-600 dark:text-gray-400">
-        This is where the AchievementGallery, ProgressBars, StatsOverview, and StreakManager components will be displayed.
-      </p>
-    </div>
-  </div>
-);
-
-const DashboardActivity = () => (
-  <div className="space-y-6">
-    <div className="card-base card-padding-lg">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-        Activity & Data
-      </h3>
-      <p className="text-gray-600 dark:text-gray-400">
-        This is where the ActivityTimeline, ProjectAnalytics, DataExport, NotificationCenter, and EmailPreferences components will be displayed.
-      </p>
-    </div>
-  </div>
-);
+// Import Email System
+import emailManager from './services/emailManager';
 
 // Main App Router Component
 const AppRouter = () => {
   const { authState, isLoading, AUTH_STATES } = useAuth();
+
+  // Initialize email system when app loads
+  useEffect(() => {
+    const initializeEmailSystem = async () => {
+      try {
+        await emailManager.initialize();
+        console.log('✅ Email system initialized');
+      } catch (error) {
+        console.error('❌ Email system initialization failed:', error);
+      }
+    };
+
+    initializeEmailSystem();
+  }, []);
 
   // Show loading screen during initial auth check
   if (isLoading) {
@@ -103,6 +68,9 @@ const AppRouter = () => {
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<LandingPage />} />
+
+      {/* Account Recovery Route - Public, no auth required */}
+      <Route path="/account-recovery" element={<AccountRecovery />} />
 
       {/* Auth Route - Smart routing based on auth state */}
       <Route
@@ -151,7 +119,10 @@ const AppRouter = () => {
       >
         <Route index element={<PaintList />} />
         <Route path="projects" element={<ProjectList />} />
+        <Route path="projects/new" element={<AddProjectPage />} />
         <Route path="projects/:projectId" element={<ProjectDetailView />} />
+        <Route path="projects/:projectId/steps/new" element={<AddStepPage />} />
+        <Route path="projects/:projectId/photos/new" element={<AddPhotosPage />} />
 
         {/* Future Community Routes (with appropriate protection) */}
         <Route
@@ -178,26 +149,12 @@ const AppRouter = () => {
             </ProtectedRoute>
           }
         />
-      </Route>
 
-      {/* Protected Dashboard Routes */}
-      <Route
-        path="/app/dashboard"
-        element={
-          <ProtectedRoute>
-            <UserDashboardLayout />
-          </ProtectedRoute>
-        }
-      >
-        {/* Default dashboard route redirects to profile */}
-        <Route index element={<Navigate to="/app/dashboard/profile" replace />} />
-
-        {/* Dashboard section routes */}
-        <Route path="profile" element={<DashboardProfile />} />
-        <Route path="privacy" element={<DashboardPrivacy />} />
-        <Route path="subscription" element={<DashboardSubscription />} />
-        <Route path="achievements" element={<DashboardAchievements />} />
-        <Route path="activity" element={<DashboardActivity />} />
+        {/* Dashboard Route - Use your working UserDashboardLayout */}
+        <Route
+          path="dashboard/*"
+          element={<UserDashboardLayout />}
+        />
       </Route>
 
       {/* Protected Admin Routes */}
@@ -272,24 +229,21 @@ const AppRouter = () => {
                 <div className="space-y-6">
                   <div>
                     <h2 className="text-xl font-semibold mb-2">Get Help</h2>
-                    <p className="text-gray-600 dark:text-gray-400">
+                    <p className="text-gray-600 dark:text-gray-400 mb-2">
                       Need assistance? Contact our support team:
                     </p>
-                    <a
-                      href="mailto:support@tabletoptactica.com"
+                    <a href="mailto:support@tabletoptactica.com"
                       className="text-indigo-600 dark:text-indigo-400 hover:underline"
                     >
                       support@tabletoptactica.com
                     </a>
                   </div>
-
                   <div>
                     <h2 className="text-xl font-semibold mb-2">Data Protection</h2>
                     <p className="text-gray-600 dark:text-gray-400 mb-2">
                       For data protection queries or to exercise your rights under GDPR:
                     </p>
-                    <a
-                      href="mailto:privacy@tabletoptactica.com"
+                    <a href="mailto:privacy@tabletoptactica.com"
                       className="text-indigo-600 dark:text-indigo-400 hover:underline"
                     >
                       privacy@tabletoptactica.com

@@ -2,13 +2,12 @@
 import React from 'react';
 import { X, Zap, ArrowRight, CheckCircle, Crown, Trophy, Star } from 'lucide-react';
 import {
-  TIER_DISPLAY_NAMES,
-  TIER_DESCRIPTIONS,
+  SUBSCRIPTION_TIERS,
   getTierLimits,
-  getTierPricing,
-  getNextTier,
-  getCurrencyInfo
-} from '../../config/subscriptionConfig';
+  getTierConfig,
+  getCurrencyInfo,
+  formatPrice
+} from '../../config/subscription';
 
 const UpgradeModal = ({
   isOpen,
@@ -21,21 +20,41 @@ const UpgradeModal = ({
 }) => {
   if (!isOpen) return null;
 
+  // Get next tier in the progression
+  const getNextTier = (tier) => {
+    const tierOrder = [
+      SUBSCRIPTION_TIERS.FREE,
+      SUBSCRIPTION_TIERS.CASUAL,
+      SUBSCRIPTION_TIERS.PRO,
+      SUBSCRIPTION_TIERS.BATTLE
+    ];
+
+    const currentIndex = tierOrder.indexOf(tier);
+    if (currentIndex < tierOrder.length - 1) {
+      return tierOrder[currentIndex + 1];
+    }
+    return null; // Already at highest tier
+  };
+
   const nextTier = getNextTier(currentTier);
   const currentLimits = getTierLimits(currentTier);
   const nextLimits = nextTier ? getTierLimits(nextTier) : null;
-  const nextTierName = nextTier ? TIER_DISPLAY_NAMES[nextTier] : null;
-  const nextTierPricing = nextTier ? getTierPricing(nextTier) : null;
+  const currentTierConfig = getTierConfig(currentTier);
+  const nextTierConfig = nextTier ? getTierConfig(nextTier) : null;
   const { symbol: currencySymbol } = getCurrencyInfo();
 
   // Get the appropriate icon for the next tier
   const getTierIcon = (tier) => {
-    switch (tier) {
-      case 'casual': return <Zap size={20} className="text-blue-500" />;
-      case 'pro': return <Crown size={20} className="text-purple-500" />;
-      case 'battle': return <Trophy size={20} className="text-amber-500" />;
-      default: return <CheckCircle size={20} className="text-gray-500" />;
-    }
+    const config = getTierConfig(tier);
+    const IconComponent = config.icon;
+    const colorMap = {
+      'casual': 'text-blue-500',
+      'pro': 'text-purple-500',
+      'battle': 'text-amber-500',
+      'free': 'text-gray-500'
+    };
+
+    return <IconComponent size={20} className={colorMap[tier] || 'text-gray-500'} />;
   };
 
   // Generate comparison data based on limit type
@@ -55,33 +74,19 @@ const UpgradeModal = ({
         nextValue: nextLimits?.projects,
         unit: 'projects'
       },
-      photos: {
+      photosPerProject: {
         title: 'Photo Limit Reached',
         description: 'You\'ve reached the photo limit for this project. Upgrade to add more photos per project.',
         currentValue: currentLimits.photosPerProject,
         nextValue: nextLimits?.photosPerProject,
         unit: 'photos per project'
       },
-      steps: {
-        title: 'Step Limit Reached',
-        description: 'You\'ve reached the step limit for this project. Upgrade to create more detailed project workflows.',
-        currentValue: currentLimits.stepsPerProject,
-        nextValue: nextLimits?.stepsPerProject,
-        unit: 'steps per project'
-      },
-      paintAssignments: {
-        title: 'Paint Assignment Limit Reached',
-        description: 'You\'ve reached the paint assignment limit. Upgrade to assign more paints to your project steps.',
-        currentValue: currentLimits.paintAssignmentsPerProject,
-        nextValue: nextLimits?.paintAssignmentsPerProject,
-        unit: 'assignments per project'
-      },
-      notes: {
-        title: 'Notes Limit Reached',
-        description: 'You\'ve reached the notes limit for this project. Upgrade to add more detailed notes.',
-        currentValue: currentLimits.notesPerProject,
-        nextValue: nextLimits?.notesPerProject,
-        unit: 'notes per project'
+      achievementHistory: {
+        title: 'Achievement History Limit Reached',
+        description: 'You\'ve reached your achievement history limit. Upgrade to keep more achievement data.',
+        currentValue: currentLimits.achievementHistory === -1 ? 'Unlimited' : `${currentLimits.achievementHistory} days`,
+        nextValue: nextLimits?.achievementHistory === -1 ? 'Unlimited' : `${nextLimits?.achievementHistory} days`,
+        unit: ''
       }
     };
 
@@ -94,43 +99,69 @@ const UpgradeModal = ({
     };
   };
 
-  // Get comprehensive feature comparison
+  // Get comprehensive feature comparison based on actual tier configs
   const getFeatureComparison = () => {
     const features = [
       {
-        category: 'Project Management',
+        category: 'Core Features',
         items: [
-          { name: 'Projects', current: currentLimits.projects, next: nextLimits?.projects },
-          { name: 'Steps per project', current: currentLimits.stepsPerProject, next: nextLimits?.stepsPerProject },
+          { name: 'Paint inventory slots', current: currentLimits.paints, next: nextLimits?.paints },
+          { name: 'Project tracking', current: currentLimits.projects, next: nextLimits?.projects },
           { name: 'Photos per project', current: currentLimits.photosPerProject, next: nextLimits?.photosPerProject },
-          { name: 'Notes per project', current: currentLimits.notesPerProject, next: nextLimits?.notesPerProject },
-          { name: 'Paint assignments per project', current: currentLimits.paintAssignmentsPerProject, next: nextLimits?.paintAssignmentsPerProject }
-        ]
-      },
-      {
-        category: 'Paint Collection',
-        items: [
-          { name: 'Paint tracking', current: currentLimits.paints, next: nextLimits?.paints },
-          { name: 'Paint catalog access', current: currentLimits.paintCatalog, next: nextLimits?.paintCatalog }
-        ]
-      },
-      {
-        category: 'Community Features',
-        items: [
-          { name: 'Project sharing', current: currentLimits.projectSharing, next: nextLimits?.projectSharing },
-          { name: 'Project likes & comments', current: currentLimits.projectLikes, next: nextLimits?.projectLikes }
+          { name: 'Achievement history', current: currentLimits.achievementHistory === -1 ? 'Unlimited' : `${currentLimits.achievementHistory} days`, next: nextLimits?.achievementHistory === -1 ? 'Unlimited' : `${nextLimits?.achievementHistory} days` }
         ]
       }
     ];
 
-    if (nextTier === 'battle') {
-      features.push({
-        category: 'Exclusive Features',
-        items: [
-          { name: 'Army tracker', current: currentLimits.armyTracker, next: nextLimits?.armyTracker },
-          { name: 'Battle reports', current: currentLimits.battleReports, next: nextLimits?.battleReports }
-        ]
-      });
+    // Add community features if they differ
+    if (nextTierConfig) {
+      const communityFeatures = [];
+
+      // Check community feature differences
+      if (!currentTierConfig.features.communityPost && nextTierConfig.features.communityPost) {
+        communityFeatures.push({ name: 'Share your projects', current: '✗', next: '✓' });
+      }
+      if (!currentTierConfig.features.communityComment && nextTierConfig.features.communityComment) {
+        communityFeatures.push({ name: 'Comment on posts', current: '✗', next: '✓' });
+      }
+      if (!currentTierConfig.features.communityLike && nextTierConfig.features.communityLike) {
+        communityFeatures.push({ name: 'Like community posts', current: '✗', next: '✓' });
+      }
+      if (!currentTierConfig.features.communityMessage && nextTierConfig.features.communityMessage) {
+        communityFeatures.push({ name: 'Direct messaging', current: '✗', next: '✓' });
+      }
+      if (!currentTierConfig.features.communityCreateGroups && nextTierConfig.features.communityCreateGroups) {
+        communityFeatures.push({ name: 'Create hobby groups', current: '✗', next: '✓' });
+      }
+
+      if (communityFeatures.length > 0) {
+        features.push({
+          category: 'Community Features',
+          items: communityFeatures
+        });
+      }
+    }
+
+    // Add advanced features for higher tiers
+    if (nextTier === 'pro' || nextTier === 'battle') {
+      const advancedFeatures = [];
+
+      if (!currentTierConfig.features.advancedAnalytics && nextTierConfig?.features.advancedAnalytics) {
+        advancedFeatures.push({ name: 'Advanced analytics', current: '✗', next: '✓' });
+      }
+      if (!currentTierConfig.features.exportData && nextTierConfig?.features.exportData) {
+        advancedFeatures.push({ name: 'Data export', current: '✗', next: '✓' });
+      }
+      if (!currentTierConfig.features.prioritySupport && nextTierConfig?.features.prioritySupport) {
+        advancedFeatures.push({ name: 'Priority support', current: '✗', next: '✓' });
+      }
+
+      if (advancedFeatures.length > 0) {
+        features.push({
+          category: 'Advanced Features',
+          items: advancedFeatures
+        });
+      }
     }
 
     return features;
@@ -200,7 +231,7 @@ const UpgradeModal = ({
                 {title}
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Upgrade to {nextTierName} for {nextTierPricing.displayPrice}
+                Upgrade to {nextTierConfig.name} for {nextTierConfig.priceDisplay}
               </p>
             </div>
           </div>
@@ -223,7 +254,7 @@ const UpgradeModal = ({
           <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
             <div className="text-center">
               <div className="font-medium text-gray-900 dark:text-white mb-1">
-                {TIER_DISPLAY_NAMES[currentTier]}
+                {currentTierConfig.name}
               </div>
               <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                 Current Plan
@@ -246,10 +277,10 @@ const UpgradeModal = ({
             <div className="text-center">
               <div className="font-medium text-gray-900 dark:text-white mb-1 flex items-center justify-center">
                 <Star size={16} className="text-indigo-500 mr-1" />
-                {nextTierName}
+                {nextTierConfig.name}
               </div>
               <div className="text-sm text-indigo-600 dark:text-indigo-400 font-medium mb-2">
-                {nextTierPricing.displayPrice}
+                {nextTierConfig.priceDisplay}
               </div>
               {comparison.nextValue && (
                 <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
@@ -268,7 +299,7 @@ const UpgradeModal = ({
         {/* Detailed Feature Comparison */}
         <div className="space-y-6 mb-8">
           <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Everything you'll get with {nextTierName}:
+            Everything you'll get with {nextTierConfig.name}:
           </h4>
 
           {featureComparison.map((category, index) => (
@@ -332,7 +363,7 @@ const UpgradeModal = ({
             className="btn-primary btn-lg flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
           >
             <Zap size={16} />
-            Upgrade to {nextTierName}
+            Upgrade to {nextTierConfig.name}
           </button>
         </div>
 

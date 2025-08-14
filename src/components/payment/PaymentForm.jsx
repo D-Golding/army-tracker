@@ -12,7 +12,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import VoucherInput from '../VoucherInput';
 import LaunchNotificationSignup from '../common/LaunchNotificationSignup';
-import { tiers } from '../../data/tierData';
+import { tiers } from '../../config/subscription/index.js';
 
 const PaymentForm = () => {
   const { userProfile, completeTierSelection, currentUser } = useAuth();

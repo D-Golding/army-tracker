@@ -1,36 +1,79 @@
-// components/projects/ProjectList.jsx - Fixed Subscription Integration
-import React, { useState } from 'react';
+// components/projects/ProjectList.jsx - Updated with Enhanced Filtering
+import React, { useState, useMemo } from 'react';
 import { useProjectListData, useProjectOperations } from '../../hooks/useProjects';
 import { useProjectPaintCheck } from '../../hooks/useProjects';
 import { useSubscription } from '../../hooks/useSubscription';
 import { useUpgradeModal } from '../../hooks/useUpgradeModal';
+import { useGamificationOperations } from '../../hooks/useGamification';
 import ProjectSummary from './ProjectSummary';
-import ProjectFilters from './ProjectFilters';
+import ProjectFilterDropdown from './ProjectFilterDropdown';
 import AddProjectButton from './AddProjectButton';
-import AddProjectModal from './AddProjectModal';
-import ProjectCard from './ProjectCard';
+import GroupedProjectDisplay from './GroupedProjectDisplay';
 import ProjectPaintStatusModal from './ProjectPaintStatusModal';
 import UpgradeModal from '../shared/UpgradeModal';
+import {
+  filterProjects,
+  groupProjects,
+  getUniqueManufacturers,
+  getUniqueGames,
+  createDefaultFilters,
+  areFiltersDefault
+} from '../../utils/projectFilters';
 
 const ProjectList = () => {
-  const [filter, setFilter] = useState('all');
-  const [showAddModal, setShowAddModal] = useState(false);
+  // Filter state
+  const [filters, setFilters] = useState(createDefaultFilters());
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedProject, setSelectedProject] = useState(null);
 
   // Get all project data and operations via React Query hooks
-  const { projects, summary, isLoading, isError, error } = useProjectListData(filter);
+  const { projects: allProjects, summary, isLoading, isError, error } = useProjectListData('all');
   const {
-    createProject,
     deleteProject,
     updateStatus,
     isLoading: isOperationLoading
   } = useProjectOperations();
 
-  // Get subscription info with debug info
+  // Get unique values for filter dropdowns
+  const availableManufacturers = useMemo(() =>
+    getUniqueManufacturers(allProjects), [allProjects]
+  );
+
+  const availableGames = useMemo(() =>
+    getUniqueGames(allProjects), [allProjects]
+  );
+
+  // Apply filters and grouping with search
+  const { filteredProjects, groupedProjects } = useMemo(() => {
+    if (!allProjects) return { filteredProjects: [], groupedProjects: {} };
+
+    // First apply search filter
+    let searchFiltered = allProjects;
+    if (searchTerm && searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase().trim();
+      searchFiltered = allProjects.filter(project =>
+        (project.name && project.name.toLowerCase().includes(searchLower)) ||
+        (project.description && project.description.toLowerCase().includes(searchLower)) ||
+        (project.manufacturer && project.manufacturer.toLowerCase().includes(searchLower)) ||
+        (project.game && project.game.toLowerCase().includes(searchLower))
+      );
+    }
+
+    // Then apply other filters
+    const filtered = filterProjects(searchFiltered, filters);
+    const grouped = groupProjects(filtered, filters.group);
+
+    return { filteredProjects: filtered, groupedProjects: grouped };
+  }, [allProjects, filters, searchTerm]);
+
+  // Get subscription info
   const { canPerformAction, currentTier, usage, limits, refreshUsage } = useSubscription();
 
   // Get upgrade modal functionality
   const { upgradeModalProps, showUpgradeModal } = useUpgradeModal();
+
+  // Get gamification operations for achievement triggers
+  const { triggerForAction } = useGamificationOperations();
 
   // Project paint check query - only runs when selectedProject is set
   const {
@@ -38,38 +81,45 @@ const ProjectList = () => {
     isLoading: isPaintCheckLoading
   } = useProjectPaintCheck(selectedProject?.name);
 
-  // Handle adding new project
-  const handleProjectCreated = async (projectData) => {
-    try {
-      // Convert to the format expected by createProject
-      const formattedData = {
-        name: projectData.name,
-        description: projectData.description,
-        requiredPaints: '', // Empty for simplified creation
-        photoURLs: '', // Empty for simplified creation
-        status: projectData.status,
-        difficulty: projectData.difficulty // New field
-      };
+  // Filter change handlers
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  };
 
-      await createProject(formattedData);
-      setShowAddModal(false);
+  const handleResetFilters = () => {
+    setFilters(createDefaultFilters());
+    setSearchTerm('');
+  };
 
-      // Subscription will auto-refresh from React Query cache changes
-      // But we can manually refresh as backup
-      setTimeout(() => {
-        refreshUsage();
-      }, 500);
-
-    } catch (error) {
-      console.error('Error creating project:', error);
-      throw error; // Re-throw so modal can handle UI feedback
-    }
+  // Handle status update from summary cards
+  const handleSummaryFilterClick = (statusFilter) => {
+    setFilters(prev => ({ ...prev, status: statusFilter }));
   };
 
   // Handle status update
   const handleStatusUpdate = async (projectName, newStatus) => {
     try {
+      const oldProject = allProjects.find(p => p.name === projectName);
+      const oldStatus = oldProject?.status;
+
       await updateStatus({ projectName, newStatus });
+
+      // Trigger achievement check for project completion
+      if (newStatus === 'completed' && oldStatus !== 'completed') {
+        try {
+          await triggerForAction('project_completed', {
+            projectName,
+            projectData: oldProject,
+            previousStatus: oldStatus,
+            newStatus
+          });
+          console.log('🎯 Achievement check triggered for project completion');
+        } catch (achievementError) {
+          console.error('Achievement trigger failed (non-blocking):', achievementError);
+          // Don't fail the status update if achievements fail
+        }
+      }
+
     } catch (error) {
       console.error('Error updating project status:', error);
       throw error;
@@ -87,7 +137,6 @@ const ProjectList = () => {
       }
 
       // Subscription will auto-refresh from React Query cache changes
-      // But we can manually refresh as backup
       setTimeout(() => {
         refreshUsage();
       }, 500);
@@ -101,11 +150,6 @@ const ProjectList = () => {
   // Handle check paints
   const handleCheckPaints = (project) => {
     setSelectedProject(project);
-  };
-
-  // Handle filter changes (from summary cards or filter chips)
-  const handleFilterChange = (newFilter) => {
-    setFilter(newFilter);
   };
 
   // Show error state
@@ -137,23 +181,53 @@ const ProjectList = () => {
           Projects: {usage.projects}/{limits.projects} |
           Can add: {canPerformAction('add_project') ? 'YES' : 'NO'}
         </div>
+        {!areFiltersDefault(filters) || (searchTerm && searchTerm.trim()) && (
+          <div className="mt-1 text-indigo-600 dark:text-indigo-400">
+            Active filters: {JSON.stringify({...filters, search: searchTerm}, null, 1)}
+          </div>
+        )}
       </div>
 
       {/* Summary Cards - Clickable for filtering */}
       <ProjectSummary
         summary={summary}
-        onFilterClick={handleFilterChange}
+        onFilterClick={handleSummaryFilterClick}
       />
 
-      {/* Filter Chips */}
-      <ProjectFilters
-        currentFilter={filter}
-        onFilterChange={handleFilterChange}
+      {/* Enhanced Filter System with Search */}
+      <ProjectFilterDropdown
+        // Current filter props
+        currentFilter={filters.status}
+        onFilterChange={(value) => handleFilterChange('status', value)}
+        currentDifficulty={filters.difficulty}
+        onDifficultyChange={(value) => handleFilterChange('difficulty', value)}
+
+        // New sorting/grouping props
+        currentSort={filters.sort}
+        onSortChange={(value) => handleFilterChange('sort', value)}
+        currentGroup={filters.group}
+        onGroupChange={(value) => handleFilterChange('group', value)}
+
+        // Additional filters
+        currentManufacturer={filters.manufacturer}
+        onManufacturerChange={(value) => handleFilterChange('manufacturer', value)}
+        currentGame={filters.game}
+        onGameChange={(value) => handleFilterChange('game', value)}
+
+        // Available options for dropdowns
+        availableManufacturers={availableManufacturers}
+        availableGames={availableGames}
+
+        // Search functionality
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+
+        // Reset function
+        onResetFilters={handleResetFilters}
       />
 
       {/* Add Project Button */}
       <AddProjectButton
-        onClick={() => setShowAddModal(true)}
         isLoading={isOperationLoading}
         showUpgradeModal={showUpgradeModal}
       />
@@ -166,36 +240,49 @@ const ProjectList = () => {
         </div>
       ) : (
         <>
-          {/* Project Cards */}
-          <div className="space-y-4">
-            {projects.map((project) => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                onStatusUpdate={handleStatusUpdate}
-                onDelete={handleDelete}
-                onCheckPaints={handleCheckPaints}
-                isLoading={isOperationLoading}
-              />
-            ))}
-          </div>
+          {/* Filter Results Summary */}
+          {(!areFiltersDefault(filters) || (searchTerm && searchTerm.trim())) && (
+            <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+              <div className="text-sm text-blue-800 dark:text-blue-300">
+                Showing {filteredProjects.length} of {allProjects?.length || 0} projects
+                {filters.group !== 'none' && (
+                  <span> in {Object.keys(groupedProjects).length} groups</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Grouped Project Display */}
+          <GroupedProjectDisplay
+            groupedProjects={groupedProjects}
+            groupKey={filters.group}
+            onStatusUpdate={handleStatusUpdate}
+            onDelete={handleDelete}
+            onCheckPaints={handleCheckPaints}
+            isLoading={isOperationLoading}
+          />
 
           {/* Empty State */}
-          {projects.length === 0 && (
+          {filteredProjects.length === 0 && allProjects?.length > 0 && (
             <div className="empty-state">
-              {filter === 'all' ? 'No projects found' : `No ${filter} projects found`}
+              <div className="mb-2">No projects match your current filters</div>
+              <button
+                onClick={handleResetFilters}
+                className="btn-outline btn-sm"
+              >
+                Clear All Filters
+              </button>
+            </div>
+          )}
+
+          {/* No Projects State */}
+          {allProjects?.length === 0 && (
+            <div className="empty-state">
+              No projects found
             </div>
           )}
         </>
       )}
-
-      {/* Add Project Modal */}
-      <AddProjectModal
-        isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        onProjectCreated={handleProjectCreated}
-        isCreating={isOperationLoading}
-      />
 
       {/* Paint Status Modal */}
       <ProjectPaintStatusModal

@@ -1,200 +1,308 @@
-// components/shared/PhotoGallery.jsx
+// components/projects/ProjectPhotoGallery.jsx
 import React, { useState } from 'react';
-import { Trash2, Eye, X, MoreVertical } from 'lucide-react';
-import { deletePhotoByURL } from '../../services/photoService';
+import { Camera, Star, X, Trash2, Eye, Edit } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useSubscription } from '../../hooks/useSubscription';
+import ConfirmationModal from '../common/ConfirmationModal';
 
-const PhotoGallery = ({
-  photos = [],
+const ProjectPhotoGallery = ({
+  projectData,
+  projectPhotos,
+  onPhotosUploaded,
   onPhotoDeleted,
-  allowDelete = true,
-  gridCols = 2,
-  aspectRatio = 'aspect-square',
+  onCoverPhotoSet,
   className = ''
 }) => {
-  const [selectedPhoto, setSelectedPhoto] = useState(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(null);
+  const [showAllPhotos, setShowAllPhotos] = useState(false);
+  const [showCoverModal, setShowCoverModal] = useState(false);
+  const [showLightbox, setShowLightbox] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
 
-  // Handle photo deletion
-  const handleDeletePhoto = async (photoUrl) => {
-    setIsDeleting(true);
+  const navigate = useNavigate();
+  const { limits, canPerformAction, currentTier } = useSubscription();
+  const coverPhotoURL = projectData?.coverPhotoURL;
 
+  // Auto-set first photo as cover if no cover is set and photos exist
+  React.useEffect(() => {
+    if (projectPhotos.length > 0 && !coverPhotoURL) {
+      onCoverPhotoSet(projectPhotos[0]);
+    }
+  }, [projectPhotos, coverPhotoURL, onCoverPhotoSet]);
+
+  // Handle setting cover photo
+  const handleSetCoverPhoto = async (photoUrl) => {
     try {
-      const result = await deletePhotoByURL(photoUrl);
-
-      if (result.success) {
-        // Call parent callback
-        if (onPhotoDeleted) {
-          onPhotoDeleted(photoUrl);
-        }
-        setShowDeleteModal(null);
-      } else {
-        alert(`Failed to delete photo: ${result.error}`);
-      }
+      await onCoverPhotoSet(photoUrl);
+      setShowCoverModal(false);
     } catch (error) {
-      alert(`Failed to delete photo: ${error.message}`);
-    } finally {
-      setIsDeleting(false);
+      console.error('Error setting cover photo:', error);
     }
   };
 
-  // Close dropdowns when clicking outside
-  const handleBackdropClick = () => {
-    setShowDropdown(null);
+  // Handle photo deletion with confirmation
+  const handleDeleteClick = (photoUrl) => {
+    setShowDeleteConfirm(photoUrl);
   };
 
-  if (!photos || photos.length === 0) {
-    return (
-      <div className={`text-center py-8 text-gray-500 dark:text-gray-400 ${className}`}>
-        <div className="text-sm">No photos yet</div>
-      </div>
-    );
-  }
+  const handleConfirmDelete = async () => {
+    if (!showDeleteConfirm) return;
+
+    try {
+      await onPhotoDeleted(showDeleteConfirm);
+
+      // If deleted photo was cover, set new cover or clear it
+      if (showDeleteConfirm === coverPhotoURL) {
+        const remainingPhotos = projectPhotos.filter(url => url !== showDeleteConfirm);
+        if (remainingPhotos.length > 0) {
+          await onCoverPhotoSet(remainingPhotos[0]);
+        } else {
+          await onCoverPhotoSet(null);
+        }
+      }
+
+      setShowDeleteConfirm(null);
+    } catch (error) {
+      console.error('Error deleting photo:', error);
+      setShowDeleteConfirm(null);
+    }
+  };
+
+  // Photo button logic
+  const canAddPhotos = canPerformAction('add_photo', 1, projectData);
+  const isTopTier = currentTier === 'battle';
+  const photoButtonDisabled = !canAddPhotos && isTopTier;
+
+  // Get photos to display in gallery (show 2 initially, all when expanded)
+  const displayPhotos = showAllPhotos ? projectPhotos : projectPhotos.slice(0, 2);
+  const hasMorePhotos = projectPhotos.length > 2;
 
   return (
     <>
-      {/* Gallery Grid */}
-      <div className={`grid grid-cols-${gridCols} gap-3 ${className}`}>
-        {photos.map((photo, index) => {
-          // Handle both string URLs and photo objects
-          const photoUrl = typeof photo === 'string' ? photo : photo.downloadURL || photo.url;
-          const photoId = typeof photo === 'string' ? photoUrl : photo.id || index;
+      <div className={`card-base card-padding ${className}`}>
+        {/* Header */}
+        <div className="mb-4">
+          <div className="flex justify-between items-start">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+              <Camera className="mr-2" size={18} />
+              Project Photos ({projectPhotos.length})
+            </h2>
+          </div>
 
-          return (
-            <div key={photoId} className={`relative ${aspectRatio} bg-gray-200 dark:bg-gray-700 rounded-xl overflow-hidden group`}>
+          {/* Add Photos Button - Navigate to wizard page */}
+          <div className="flex justify-start mt-3">
+            <button
+              onClick={() => navigate(`/app/projects/${projectData?.id}/photos/new`)}
+              disabled={photoButtonDisabled}
+              className={`btn-primary btn-sm ${photoButtonDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <Camera size={16} />
+              {canAddPhotos ? "Add Photos" : (isTopTier ? "Add Photos" : "Upgrade")}
+            </button>
+          </div>
+        </div>
 
-              {/* Photo Image */}
-              <img
-                src={photoUrl}
-                alt={`Photo ${index + 1}`}
-                className="w-full h-full object-cover cursor-pointer"
-                onClick={() => setSelectedPhoto(photoUrl)}
-                onError={(e) => {
-                  e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMTMuMDkgOC4yNkwyMSA5TDEzLjA5IDE1Ljc0TDEyIDIyTDEwLjkxIDE1Ljc0TDMgOUwxMC45MSA4LjI2TDEyIDJaIiBzdHJva2U9IiM5Q0E0QUYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+Cjwvc3ZnPgo=';
-                  e.target.classList.add('p-8');
-                }}
-              />
+        {/* No Photos State */}
+        {projectPhotos.length === 0 ? (
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+            <Camera className="mx-auto mb-3 text-gray-400" size={32} />
+            <p className="mb-3">No photos added yet</p>
+          </div>
+        ) : (
+          <>
+            {/* Cover Photo Section */}
+            {coverPhotoURL && (
+              <div className="mb-6">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center">
+                  <Star className="mr-1 text-yellow-500" size={14} />
+                  Cover Photo
+                </h3>
 
-              {/* Overlay Controls */}
-              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
-                <div className="flex gap-2">
+                <div className="w-1/2 pr-1.5">
+                  {/* Cover Photo Display - Same size as gallery photos */}
+                  <div className="aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 border-2 border-yellow-200 dark:border-yellow-600">
+                    <img
+                      src={coverPhotoURL}
+                      alt="Project cover"
+                      className="w-full h-full object-contain cursor-pointer"
+                      onClick={() => setShowLightbox(coverPhotoURL)}
+                    />
+                  </div>
 
-                  {/* View Button */}
+                  {/* Change Cover Button */}
                   <button
-                    onClick={() => setSelectedPhoto(photoUrl)}
-                    className="p-2 bg-white bg-opacity-90 rounded-full hover:bg-opacity-100 transition-all"
+                    onClick={() => setShowCoverModal(true)}
+                    className="mt-2 w-full btn-tertiary btn-sm flex items-center justify-center gap-2"
                   >
-                    <Eye size={16} className="text-gray-700" />
+                    <Edit size={14} />
+                    Change
                   </button>
-
-                  {/* Delete Button */}
-                  {allowDelete && (
-                    <button
-                      onClick={() => setShowDeleteModal(photoUrl)}
-                      className="p-2 bg-red-500 bg-opacity-90 rounded-full hover:bg-opacity-100 transition-all"
-                    >
-                      <Trash2 size={16} className="text-white" />
-                    </button>
-                  )}
                 </div>
               </div>
+            )}
 
-              {/* Mobile Menu (Three Dots) */}
-              <div className="absolute top-2 right-2 md:hidden">
-                <button
-                  onClick={() => setShowDropdown(showDropdown === photoId ? null : photoId)}
-                  className="p-1 bg-black bg-opacity-50 rounded-full text-white"
-                >
-                  <MoreVertical size={16} />
-                </button>
+            {/* Gallery Section */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Gallery
+              </h3>
 
-                {/* Dropdown Menu */}
-                {showDropdown === photoId && (
-                  <>
-                    <div className="dropdown-backdrop" onClick={handleBackdropClick}></div>
-                    <div className="absolute top-8 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-[9999] w-32">
-                      <button
-                        onClick={() => {
-                          setSelectedPhoto(photoUrl);
-                          setShowDropdown(null);
-                        }}
-                        className="dropdown-item"
-                      >
-                        <Eye size={14} />
-                        View
-                      </button>
-                      {allowDelete && (
-                        <button
-                          onClick={() => {
-                            setShowDeleteModal(photoUrl);
-                            setShowDropdown(null);
-                          }}
-                          className="dropdown-item-danger"
-                        >
-                          <Trash2 size={14} />
-                          Delete
-                        </button>
+              {/* Photo Grid */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                {displayPhotos.map((photoUrl, index) => {
+                  const isCoverPhoto = photoUrl === coverPhotoURL;
+
+                  return (
+                    <div key={photoUrl} className="relative">
+                      {/* Photo Card */}
+                      <div className="aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                        <img
+                          src={photoUrl}
+                          alt={`Project photo ${index + 1}`}
+                          className="w-full h-full object-contain cursor-pointer"
+                          onClick={() => setShowLightbox(photoUrl)}
+                        />
+                      </div>
+
+                      {/* Cover Badge */}
+                      {isCoverPhoto && (
+                        <div className="absolute top-2 left-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded-lg flex items-center gap-1">
+                          <Star size={10} />
+                          Cover
+                        </div>
                       )}
+
+                      {/* Delete Button - Always visible, bottom right */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteClick(photoUrl);
+                        }}
+                        className="absolute bottom-2 right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors"
+                        title="Delete photo"
+                      >
+                        <Trash2 size={12} />
+                      </button>
                     </div>
-                  </>
-                )}
+                  );
+                })}
               </div>
+
+              {/* See All / Show Less Button */}
+              {hasMorePhotos && (
+                <button
+                  onClick={() => setShowAllPhotos(!showAllPhotos)}
+                  className="w-full p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl text-gray-600 dark:text-gray-400 hover:border-indigo-400 dark:hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center justify-center gap-2"
+                >
+                  {showAllPhotos ? (
+                    <>Show Less</>
+                  ) : (
+                    <>See All ({projectPhotos.length - 2} more)</>
+                  )}
+                </button>
+              )}
             </div>
-          );
-        })}
+          </>
+        )}
       </div>
 
-      {/* Photo Lightbox Modal */}
-      {selectedPhoto && (
-        <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4 z-50" onClick={() => setSelectedPhoto(null)}>
-          <div className="relative max-w-4xl max-h-full">
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(null)}
+        title="Delete Photo?"
+        message="This will permanently remove this photo from your project. This action cannot be undone."
+        type="error"
+        primaryAction={{
+          label: "Delete",
+          onClick: handleConfirmDelete,
+          variant: "danger"
+        }}
+        secondaryAction={{
+          label: "Cancel",
+          onClick: () => setShowDeleteConfirm(null)
+        }}
+      />
 
-            {/* Close Button */}
-            <button
-              onClick={() => setSelectedPhoto(null)}
-              className="absolute top-4 right-4 p-2 bg-black bg-opacity-50 rounded-full text-white hover:bg-opacity-70 transition-all z-10"
-            >
-              <X size={20} />
-            </button>
+      {/* Cover Photo Selection Modal */}
+      {showCoverModal && (
+        <div className="modal-backdrop" onClick={() => setShowCoverModal(false)}>
+          <div className="modal-content max-w-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Choose Cover Photo
+              </h3>
+              <button
+                onClick={() => setShowCoverModal(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-1"
+              >
+                <X size={20} />
+              </button>
+            </div>
 
-            {/* Photo */}
-            <img
-              src={selectedPhoto}
-              alt="Full size"
-              className="max-w-full max-h-full object-contain rounded-lg"
-              onClick={(e) => e.stopPropagation()}
-            />
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
+              {projectPhotos.map((photoUrl, index) => {
+                const isCurrentCover = photoUrl === coverPhotoURL;
+
+                return (
+                  <button
+                    key={photoUrl}
+                    onClick={() => handleSetCoverPhoto(photoUrl)}
+                    className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all ${
+                      isCurrentCover 
+                        ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20' 
+                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+                    }`}
+                  >
+                    <img
+                      src={photoUrl}
+                      alt={`Photo option ${index + 1}`}
+                      className="w-full h-full object-contain"
+                    />
+
+                    {isCurrentCover && (
+                      <div className="absolute inset-0 bg-yellow-500 bg-opacity-20 flex items-center justify-center">
+                        <div className="bg-yellow-500 text-white px-2 py-1 rounded-lg flex items-center gap-1">
+                          <Star size={12} />
+                          Current
+                        </div>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700 mt-4">
+              <button
+                onClick={() => setShowCoverModal(false)}
+                className="btn-tertiary btn-md w-full"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="modal-backdrop">
-          <div className="modal-content max-w-sm">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Delete Photo?
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              This action cannot be undone. The photo will be permanently deleted.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowDeleteModal(null)}
-                disabled={isDeleting}
-                className="btn-tertiary btn-md flex-1"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDeletePhoto(showDeleteModal)}
-                disabled={isDeleting}
-                className="btn-danger btn-md flex-1"
-              >
-                {isDeleting ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
+      {/* Lightbox Modal */}
+      {showLightbox && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-90 z-[9999] flex items-center justify-center p-4"
+          onClick={() => setShowLightbox(null)}
+        >
+          <div className="relative max-w-4xl max-h-full">
+            <img
+              src={showLightbox}
+              alt="Full size preview"
+              className="max-w-full max-h-full object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button
+              onClick={() => setShowLightbox(null)}
+              className="absolute top-4 right-4 p-2 bg-black bg-opacity-50 text-white rounded-full hover:bg-opacity-70 transition-all"
+            >
+              <X size={20} />
+            </button>
           </div>
         </div>
       )}
@@ -202,4 +310,4 @@ const PhotoGallery = ({
   );
 };
 
-export default PhotoGallery;
+export default ProjectPhotoGallery;

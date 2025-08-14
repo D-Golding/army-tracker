@@ -1,4 +1,4 @@
-// utils/photoUploader.js
+// utils/photoUploader.js - Updated with Banner Support
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage } from '../firebase.js';
 
@@ -9,6 +9,7 @@ const UPLOAD_CONFIG = {
   // Storage paths
   projectPhotosPath: 'project-photos',
   assignmentPhotosPath: 'assignment-photos',
+  bannerPhotosPath: 'user-banners', // New path for banner photos
 
   // File naming
   timestampFormat: 'YYYYMMDD_HHmmss',
@@ -24,7 +25,7 @@ const UPLOAD_CONFIG = {
  * Generates a unique filename for photo uploads
  * @param {string} userId - User ID
  * @param {string} projectId - Project ID
- * @param {string} type - Photo type ('project' or 'assignment')
+ * @param {string} type - Photo type ('project', 'assignment', 'banner', 'profile')
  * @param {string} fileExtension - File extension (e.g., 'webp', 'jpg')
  * @param {string} [assignmentId] - Assignment ID (for assignment photos)
  * @returns {string} Unique filename
@@ -37,18 +38,33 @@ const generatePhotoFilename = (userId, projectId, type, fileExtension, assignmen
     return `${userId}_${projectId}_${assignmentId}_${timestamp}_${randomId}.${fileExtension}`;
   }
 
+  if (type === 'banner') {
+    return `${userId}_banner_${timestamp}_${randomId}.${fileExtension}`;
+  }
+
+  if (type === 'profile') {
+    return `${userId}_avatar_${timestamp}_${randomId}.${fileExtension}`;
+  }
+
   return `${userId}_${projectId}_${timestamp}_${randomId}.${fileExtension}`;
 };
 
 /**
  * Gets the storage path for a photo type
- * @param {string} type - Photo type ('project' or 'assignment')
+ * @param {string} type - Photo type ('project', 'assignment', 'banner', 'profile')
  * @returns {string} Storage path
  */
 const getStoragePath = (type) => {
-  return type === 'assignment'
-    ? UPLOAD_CONFIG.assignmentPhotosPath
-    : UPLOAD_CONFIG.projectPhotosPath;
+  switch (type) {
+    case 'assignment':
+      return UPLOAD_CONFIG.assignmentPhotosPath;
+    case 'banner':
+      return UPLOAD_CONFIG.bannerPhotosPath;
+    case 'profile':
+      return UPLOAD_CONFIG.projectPhotosPath; // Reuse project path for profiles
+    default:
+      return UPLOAD_CONFIG.projectPhotosPath;
+  }
 };
 
 /**
@@ -65,8 +81,8 @@ const getStoragePath = (type) => {
  * Uploads a photo blob to Firebase Storage
  * @param {Blob} blob - Processed photo blob
  * @param {string} userId - User ID
- * @param {string} projectId - Project ID
- * @param {string} type - Photo type ('project' or 'assignment')
+ * @param {string} projectId - Project ID (or 'banner'/'avatar' for special types)
+ * @param {string} type - Photo type ('project', 'assignment', 'banner', 'profile')
  * @param {string} [assignmentId] - Assignment ID (for assignment photos)
  * @returns {Promise<UploadResult>} Upload result
  */
@@ -141,7 +157,7 @@ export const uploadPhoto = async (blob, userId, projectId, type = 'project', ass
  * @param {Blob[]} blobs - Array of processed photo blobs
  * @param {string} userId - User ID
  * @param {string} projectId - Project ID
- * @param {string} type - Photo type ('project' or 'assignment')
+ * @param {string} type - Photo type ('project', 'assignment', 'banner', 'profile')
  * @param {string} [assignmentId] - Assignment ID (for assignment photos)
  * @returns {Promise<UploadResult[]>} Array of upload results
  */
@@ -209,15 +225,27 @@ export const deletePhotos = async (storagePaths) => {
  */
 export const getStoragePathFromURL = (downloadURL) => {
   try {
+    console.log('🔍 Attempting to extract storage path from URL:', downloadURL);
+    console.log('🔍 URL type:', typeof downloadURL);
+
     const url = new URL(downloadURL);
-    const pathMatch = url.pathname.match(/\/o\/(.+)\?/);
+    console.log('🔍 Parsed URL pathname:', url.pathname);
+
+    // Updated regex to handle the new Firebase Storage URL format
+    // Looks for /o/ followed by anything, with or without a query string
+    const pathMatch = url.pathname.match(/\/o\/(.+)$/);
+    console.log('🔍 Path match result:', pathMatch);
 
     if (pathMatch && pathMatch[1]) {
-      return decodeURIComponent(pathMatch[1]);
+      const decodedPath = decodeURIComponent(pathMatch[1]);
+      console.log('🔍 Decoded storage path:', decodedPath);
+      return decodedPath;
     }
 
+    console.log('❌ No path match found');
     return null;
   } catch (error) {
+    console.log('❌ Error parsing URL:', error);
     return null;
   }
 };

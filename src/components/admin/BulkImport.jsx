@@ -1,7 +1,7 @@
 // components/admin/BulkImport.jsx
 import React, { useState } from 'react';
 import { Upload, CheckCircle, AlertTriangle, Loader } from 'lucide-react';
-import { newPaint } from '../../services/paintService';
+import { newPaint } from '../../services/paints/index.js';
 
 const BulkImport = () => {
   const [jsonData, setJsonData] = useState('');
@@ -64,7 +64,8 @@ const BulkImport = () => {
             paint.status,
             paint.level,
             paint.photoURL,
-            paint.sprayPaint
+            paint.sprayPaint,
+            paint.colour  // Added missing colour parameter
           );
           successful++;
         } catch (error) {
@@ -80,10 +81,7 @@ const BulkImport = () => {
           errors: [...errors]
         });
 
-        // Small delay to prevent overwhelming Firestore
-        if (i % 10 === 0) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
+        // Removed throttling delay - let it run at full speed
       }
 
       // Clear the JSON data after successful import
@@ -123,7 +121,7 @@ const BulkImport = () => {
         <textarea
           value={jsonData}
           onChange={handleJsonInput}
-          placeholder='[{"brand": "Citadel Colour", "type": "Base", "name": "Abaddon Black", "status": "collection", "level": 100, "airbrush": false, "sprayPaint": false, "photoURL": null}, ...]'
+          placeholder='[{"brand": "Citadel Paints Colour", "type": "Base", "name": "Abaddon Black", "status": "collection", "level": 100, "airbrush": false, "sprayPaint": false, "photoURL": null, "colour": "black"}, ...]'
           className="w-full h-40 p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-xs font-mono"
           disabled={importing}
         />

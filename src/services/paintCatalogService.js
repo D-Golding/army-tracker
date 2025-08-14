@@ -83,12 +83,13 @@ export const addCatalogPaint = async (brand, type, name, airbrush = false, spray
   const existingQuery = query(
     collection(db, "paintCatalog"),
     where("brand", "==", brand),
+    where("type", "==", type),
     where("name", "==", name)
   );
   const existingSnapshot = await getDocs(existingQuery);
 
   if (!existingSnapshot.empty) {
-    throw new Error(`Paint "${name}" by "${brand}" already exists in catalog`);
+    throw new Error(`Paint "${name}" by "${brand}" (${type}) already exists in catalog`);
   }
 
   await addDoc(collection(db, "paintCatalog"), {
@@ -110,10 +111,11 @@ export const bulkAddCatalogPaints = async (paintsArray) => {
 
   for (const paint of paintsArray) {
     try {
-      // Check if paint already exists
+      // Check if paint already exists (brand + type + name combination)
       const existingQuery = query(
         collection(db, "paintCatalog"),
         where("brand", "==", paint.brand),
+        where("type", "==", paint.type),
         where("name", "==", paint.name)
       );
       const existingSnapshot = await getDocs(existingQuery);
@@ -123,6 +125,7 @@ export const bulkAddCatalogPaints = async (paintsArray) => {
           brand: paint.brand,
           type: paint.type,
           name: paint.name,
+          colour: paint.colour,
           airbrush: paint.airbrush || false,
           sprayPaint: paint.sprayPaint || false,
           dateAdded: new Date().toISOString()

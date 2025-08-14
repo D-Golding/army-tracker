@@ -1,48 +1,48 @@
-// components/projects/AddProjectButton.jsx - Add Project Button with Subscription Limits
+// components/projects/AddProjectButton.jsx - Updated to match paint button styling
 import React from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, X, Zap } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useSubscription } from '../../hooks/useSubscription';
 
-const AddProjectButton = ({ onClick, isLoading = false, showUpgradeModal }) => {
-  const { canPerformAction, currentTier } = useSubscription();
+const AddProjectButton = ({ isLoading = false, showUpgradeModal }) => {
+  const navigate = useNavigate();
+  const { canPerformAction, currentTier, usage, limits } = useSubscription();
 
   // Check if user can add projects
   const canAddProjects = canPerformAction('add_project', 1);
   const isTopTier = currentTier === 'battle';
+  const hasReachedProjectLimit = usage.projects >= limits.projects;
 
-  // Button should ONLY be disabled if: can't add projects AND is top tier OR is loading
-  const isDisabled = (!canAddProjects && isTopTier) || isLoading;
-
-  // Button text based on state
-  const getButtonText = () => {
-    if (isLoading) return 'Adding...';
-    if (!canAddProjects && isTopTier) return 'Project limit reached';
-    if (!canAddProjects) return 'Upgrade for more projects';
-    return 'Add New Project';
-  };
-
-  // Handle click - show upgrade modal if at limit but not top tier
+  // Handle button click
   const handleClick = () => {
     if (isLoading) return;
 
-    if (canAddProjects) {
-      onClick();
-    } else if (!isTopTier && showUpgradeModal) {
-      showUpgradeModal('projects');
+    if (hasReachedProjectLimit) {
+      if (showUpgradeModal && !isTopTier) {
+        showUpgradeModal('projects');
+      }
+    } else {
+      navigate('/app/projects/new');
     }
-    // If top tier and at limit, button is disabled so nothing happens
   };
 
   return (
     <button
       onClick={handleClick}
-      disabled={isDisabled}
-      className={`w-full mb-4 p-4 gradient-secondary text-white rounded-2xl font-semibold shadow-lg hover:shadow-xl transition-all active:scale-98 disabled:opacity-50 ${
-        isDisabled ? 'cursor-not-allowed' : ''
-      }`}
+      disabled={isLoading}
+      className="btn-md flex-1 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg transition-all mb-4 w-full"
     >
-      <Plus className="inline-block mr-2" size={20} />
-      {getButtonText()}
+      {hasReachedProjectLimit ? (
+        <>
+          <Zap className="inline-block mr-2" size={20} />
+          Upgrade to add more ({usage.projects}/{limits.projects})
+        </>
+      ) : (
+        <>
+          <Plus className="inline-block mr-2" size={20} />
+          Add New Project ({usage.projects}/{limits.projects})
+        </>
+      )}
     </button>
   );
 };

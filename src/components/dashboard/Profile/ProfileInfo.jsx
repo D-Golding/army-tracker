@@ -199,12 +199,12 @@ const ProfileInfo = () => {
             </div>
           </div>
 
-          {/* Account Created */}
+           {/* Account Created */}
           <div>
             <label className="form-label">Member Since</label>
             <p className="text-gray-900 dark:text-white">
               {userProfile?.createdAt
-                ? new Date(userProfile.createdAt.seconds * 1000).toLocaleDateString()
+                ? new Date(userProfile.createdAt.seconds * 1000).toLocaleDateString('en-GB')
                 : 'Unknown'
               }
             </p>

@@ -19,7 +19,7 @@ import {
 import { doc, updateDoc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../../firebase';
 import { deletePhotoByURL } from '../../../services/photoService';
-import { sendDeletionVerificationEmail, generateVerificationCode } from '../../../services/emailService';
+import { generateVerificationCode } from '../../../services/emailService';
 
 const DeletionEmailVerification = ({ onBack, deletionType, deletionData }) => {
   const { currentUser, userProfile, logout } = useAuth();

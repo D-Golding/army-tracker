@@ -1,0 +1,266 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions for authentication and authorization
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function hasValidSubscription() {
+      let userData = getUserData();
+      return userData.subscription != null &&
+             userData.subscription.tier != null &&
+             userData.subscription.tier != '';
+    }
+
+    function getSubscriptionTier() {
+      let userData = getUserData();
+      return userData.subscription != null ? userData.subscription.tier : 'free';
+    }
+
+    function canAccessCommunityFeature(feature) {
+      let userData = getUserData();
+      let tier = getSubscriptionTier();
+
+      // Community read access - all tiers
+      if (feature == 'read') {
+        return userData.communityAccess == true;
+      }
+
+      // Community post/interact features - paid tiers only
+      if (feature == 'post' || feature == 'comment' || feature == 'like' || feature == 'message') {
+        return userData.communityAccess == true && tier != 'free';
+      }
+
+      // Group creation - paid tiers only
+      if (feature == 'createGroups') {
+        return userData.communityAccess == true && tier != 'free';
+      }
+
+      return false;
+    }
+
+    function isAdult() {
+      let userData = getUserData();
+      return userData.userCategory == 'adult';
+    }
+
+    function isContentModerated(resource) {
+      return resource.data.moderationStatus == 'approved' &&
+             resource.data.isDeleted == false &&
+             resource.data.isPublished == true;
+    }
+
+    // Users collection - Core user profiles
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId);
+
+      // Subcollections for user data
+      match /projects/{projectId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /paints/{paintId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /wishlist/{itemId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      match /needToBuy/{itemId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // Community Posts - Main community content
+    match /communityPosts/{postId} {
+      // Read: authenticated users with community access
+      allow read: if isAuthenticated() &&
+                     canAccessCommunityFeature('read') &&
+                     isContentModerated(resource);
+
+      // Create: authenticated users with post permission
+      allow create: if isAuthenticated() &&
+                       canAccessCommunityFeature('post') &&
+                       isOwner(request.resource.data.authorId) &&
+                       // Validate required fields
+                       request.resource.data.content is string &&
+                       request.resource.data.authorId == request.auth.uid &&
+                       request.resource.data.createdAt == request.time &&
+                       request.resource.data.likesCount == 0 &&
+                       request.resource.data.commentsCount == 0 &&
+                       request.resource.data.isDeleted == false &&
+                       request.resource.data.isPublished == true;
+
+      // Update: only post author can edit their own posts
+      allow update: if isAuthenticated() &&
+                       canAccessCommunityFeature('post') &&
+                       isOwner(resource.data.authorId) &&
+                       // Don't allow changing core fields
+                       request.resource.data.authorId == resource.data.authorId &&
+                       request.resource.data.createdAt == resource.data.createdAt;
+
+      // Delete: only post author (soft delete by setting isDeleted)
+      allow delete: if isAuthenticated() &&
+                       isOwner(resource.data.authorId);
+    }
+
+    // User Social Profiles - For follows, likes, etc.
+    match /userSocial/{userId} {
+      // Users can read any social profile (for follow counts, etc.)
+      allow read: if isAuthenticated() && canAccessCommunityFeature('read');
+
+      // Users can only write to their own social profile
+      allow write: if isAuthenticated() &&
+                      canAccessCommunityFeature('like') &&
+                      isOwner(userId);
+    }
+
+    // Community Groups - User-created groups
+    match /communityGroups/{groupId} {
+      // Read: authenticated users with community access, if group content is moderated
+      allow read: if isAuthenticated() &&
+                     canAccessCommunityFeature('read') &&
+                     isContentModerated(resource);
+
+      // Create: authenticated users with group creation permission
+      allow create: if isAuthenticated() &&
+                       canAccessCommunityFeature('createGroups') &&
+                       isOwner(request.resource.data.creatorId) &&
+                       request.resource.data.creatorId == request.auth.uid &&
+                       request.resource.data.createdAt == request.time;
+
+      // Update: only group creator or admins
+      allow update: if isAuthenticated() &&
+                       canAccessCommunityFeature('createGroups') &&
+                       (isOwner(resource.data.creatorId) ||
+                        request.auth.uid in resource.data.admins);
+
+      // Delete: only group creator
+      allow delete: if isAuthenticated() &&
+                       isOwner(resource.data.creatorId);
+    }
+
+    // Comments - Nested under posts or groups
+    match /comments/{commentId} {
+      // Read: authenticated users with community access
+      allow read: if isAuthenticated() && canAccessCommunityFeature('read');
+
+      // Create: authenticated users with comment permission
+      allow create: if isAuthenticated() &&
+                       canAccessCommunityFeature('comment') &&
+                       isOwner(request.resource.data.authorId) &&
+                       request.resource.data.authorId == request.auth.uid &&
+                       request.resource.data.createdAt == request.time;
+
+      // Update: only comment author
+      allow update: if isAuthenticated() &&
+                       canAccessCommunityFeature('comment') &&
+                       isOwner(resource.data.authorId);
+
+      // Delete: comment author or post/group owner
+      allow delete: if isAuthenticated() &&
+                       isOwner(resource.data.authorId);
+    }
+
+    // Rate Limiting Data - Users can only access their own rate limit data
+    match /userRateLimits/{userId} {
+      allow read, write: if isAuthenticated() && isOwner(userId);
+    }
+
+    // Audit Logs - Read-only for users, write-only for system
+    match /auditLogs/{logId} {
+      // Users can read their own audit logs (for compliance/transparency)
+      allow read: if isAuthenticated() &&
+                     isOwner(resource.data.userId);
+
+      // Only system/cloud functions can write audit logs
+      allow write: if false; // This will be handled by admin SDK in cloud functions
+    }
+
+    // Critical Audit Logs - Admin access only
+    match /criticalAuditLogs/{logId} {
+      allow read, write: if false; // Admin SDK only
+    }
+
+    // User Reports - For content moderation
+    match /userReports/{reportId} {
+      // Users can read reports they submitted
+      allow read: if isAuthenticated() &&
+                     isOwner(resource.data.reportedBy);
+
+      // Users can create reports if they have community access
+      allow create: if isAuthenticated() &&
+                       canAccessCommunityFeature('read') &&
+                       isOwner(request.resource.data.reportedBy) &&
+                       request.resource.data.reportedBy == request.auth.uid &&
+                       request.resource.data.createdAt == request.time;
+
+      // No updates or deletes allowed for reports
+      allow update, delete: if false;
+    }
+
+    // Messages - Direct messaging (if implemented)
+    match /messages/{messageId} {
+      // Users can read messages they sent or received
+      allow read: if isAuthenticated() &&
+                     canAccessCommunityFeature('message') &&
+                     (isOwner(resource.data.senderId) ||
+                      isOwner(resource.data.receiverId));
+
+      // Users can send messages
+      allow create: if isAuthenticated() &&
+                       canAccessCommunityFeature('message') &&
+                       isAdult() && // Messaging restricted to adults
+                       isOwner(request.resource.data.senderId) &&
+                       request.resource.data.senderId == request.auth.uid &&
+                       request.resource.data.createdAt == request.time;
+
+      // No updates or deletes for messages (immutable for safety)
+      allow update, delete: if false;
+    }
+
+    // Moderation Queue - Admin only
+    match /moderationQueue/{itemId} {
+      allow read, write: if false; // Admin SDK only
+    }
+
+    // User Notifications
+    match /notifications/{userId} {
+      allow read: if isAuthenticated() && isOwner(userId);
+      allow write: if false; // System-generated only
+
+      match /items/{notificationId} {
+        allow read: if isAuthenticated() && isOwner(userId);
+        allow write: if false; // System-generated only
+      }
+    }
+
+    // Analytics Data - System only
+    match /analytics/{document=**} {
+      allow read, write: if false; // Admin SDK only
+    }
+
+    // Configuration Data - Read-only for authenticated users
+    match /config/{configId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Admin only
+    }
+
+    // Catch-all: Deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

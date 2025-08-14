@@ -1,8 +1,8 @@
 // hooks/useUsageStats.js - Usage Statistics Hook
 import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '../lib/queryClient';
-import { getInventorySummary } from '../services/paintService';
-import { getProjectStatusSummary } from '../services/projectService';
+import { getInventorySummary } from '../services/paints/index.js';
+import { getProjectStatusSummary } from '../services/projects/index.js';
 
 // Combined usage statistics query
 export const useUsageStats = () => {

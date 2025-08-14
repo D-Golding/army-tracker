@@ -1,4 +1,4 @@
-// components/dashboard/UserDashboard.jsx - Complete User Dashboard with Privacy Integration
+// components/dashboard/UserDashboard.jsx - Complete User Dashboard with Privacy and Gamification Integration
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -20,6 +20,9 @@ import PrivacySettings from './Privacy/PrivacySettings';
 
 // Import Profile Components
 import ProfileInfo from './Profile/ProfileInfo';
+
+// Import Gamification Components
+import GamificationDashboard from './Gamification/GamificationDashboard';
 
 const UserDashboard = () => {
   const { userProfile, isLoading } = useAuth();
@@ -190,7 +193,7 @@ const UserDashboard = () => {
       case 'subscription':
         return renderPlaceholder('Subscription Management');
       case 'achievements':
-        return renderPlaceholder('Achievements & Gamification');
+        return <GamificationDashboard />;
       case 'activity':
         return renderPlaceholder('Activity & Data Export');
       default:

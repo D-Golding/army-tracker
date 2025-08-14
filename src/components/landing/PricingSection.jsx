@@ -2,15 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
-import { tiers } from '../../data/tierData';
-import { getTierPricing, getCurrencyInfo } from '../../config/subscriptionConfig';
+import { tiers, getCurrencyInfo } from '../../config/subscription';
 import LaunchNotificationSignup from '../common/LaunchNotificationSignup';
 
 const PricingSection = () => {
   const [currentTierIndex, setCurrentTierIndex] = useState(1); // Start with Casual (popular)
 
   // Get currency info
-  const { currency, symbol: currencySymbol } = getCurrencyInfo();
+  const { symbol: currencySymbol } = getCurrencyInfo();
 
   const goToSlide = (index) => {
     if (index < 0) index = tiers.length - 1;
@@ -23,7 +22,6 @@ const PricingSection = () => {
 
   const currentTier = tiers[currentTierIndex];
   const IconComponent = currentTier.icon;
-  const tierPricing = getTierPricing(currentTier.id);
 
   return (
     <section id="pricing" className="py-16 bg-gray-50 px-4">
@@ -60,11 +58,11 @@ const PricingSection = () => {
                 </h3>
                 <div className="mb-4">
                   <span className={`text-3xl font-bold ${currentTier.textColor}`}>
-                    {currentTier.id === 'free' ? 'Free' : `${currencySymbol}${tierPricing.price.toFixed(2)}`}
+                    {currentTier.priceDisplay}
                   </span>
                   {currentTier.id !== 'free' && (
                     <span className={`text-sm ${currentTier.textColor} opacity-70 ml-1`}>
-                      /year
+                      /{currentTier.period}
                     </span>
                   )}
                 </div>
@@ -72,7 +70,7 @@ const PricingSection = () => {
 
               {/* Features */}
               <div className="space-y-3 mb-6">
-                {currentTier.features.map((feature, featureIndex) => (
+                {currentTier.featureList.map((feature, featureIndex) => (
                   <div key={featureIndex} className="flex items-start gap-3">
                     <Check className="text-green-500 flex-shrink-0 mt-1" size={16} />
                     <span className={`text-sm ${currentTier.textColor} opacity-80`}>

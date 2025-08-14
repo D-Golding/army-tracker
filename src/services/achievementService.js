@@ -1,8 +1,8 @@
 // services/achievementService.js - Achievement Calculation Engine with Real Data
 import { doc, setDoc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase.js';
-import { getAllPaints } from './paintService.js';
-import { getAllProjects } from './projectService.js';
+import { getAllPaints } from './paints/index.js';
+import { getAllProjects } from './projects/index.js';
 import {
   ACHIEVEMENT_CATEGORIES,
   ACHIEVEMENT_DEFINITIONS,

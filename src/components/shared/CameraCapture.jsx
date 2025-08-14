@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useSubscription } from '../../hooks/useSubscription';
 import { useUpgradeModal } from '../../hooks/useUpgradeModal';
 import UpgradeModal from './UpgradeModal';
+import ProjectPhotoCropper from '../projects/ProjectPhotoCropper';
 
 const CameraCapture = ({
   onPhotosUploaded,
@@ -17,12 +18,15 @@ const CameraCapture = ({
   maxPhotos = 10,
   disabled = false,
   buttonText = 'Add Photos',
-  buttonStyle = 'btn-primary btn-md'
+  buttonStyle = 'btn-primary btn-md',
+  enableCropping = false // New prop to enable cropping for project photos
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState([]);
   const [error, setError] = useState(null);
+  const [showCropper, setShowCropper] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
   const fileInputRef = useRef(null);
   const { currentUser } = useAuth();
   const { canPerformAction, getRemainingAllowance, currentTier, getNextTier } = useSubscription();
@@ -31,6 +35,9 @@ const CameraCapture = ({
   // Check if user can add photos and if they're on the highest tier
   const canAddPhotos = canPerformAction('add_photo', 1, projectData);
   const isHighestTier = !getNextTier(); // No next tier available
+
+  // Determine if we should show cropping option
+  const shouldShowCropping = enableCropping && photoType === 'project';
 
   // Handle button click - check limits and show modal if needed
   const handleButtonClick = () => {
@@ -47,8 +54,48 @@ const CameraCapture = ({
     setIsOpen(true);
   };
 
-  // Handle file selection (camera or file picker)
-  const handleFileSelect = async (files) => {
+  // Handle file selection for cropping
+  const handleFileSelectForCropping = async (files) => {
+    if (!files || files.length === 0) return;
+
+    // For cropping, we only handle one file at a time
+    const file = files[0];
+
+    // Validate file type
+    if (file.type && !['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif'].includes(file.type.toLowerCase())) {
+      setError('Invalid file type. Please select an image file.');
+      return;
+    }
+
+    setSelectedFile(file);
+    setShowCropper(true);
+    setIsOpen(false); // Close the upload modal
+  };
+
+  // Handle crop completion
+  const handleCropComplete = async (croppedBlob) => {
+    setShowCropper(false);
+    setSelectedFile(null);
+
+    // Convert blob back to File object
+    const croppedFile = new File([croppedBlob], 'cropped-photo.jpg', {
+      type: 'image/jpeg',
+      lastModified: Date.now()
+    });
+
+    // Process the cropped file
+    await processFiles([croppedFile]);
+  };
+
+  // Handle crop cancellation
+  const handleCropCancel = () => {
+    setShowCropper(false);
+    setSelectedFile(null);
+    setIsOpen(true); // Reopen the upload modal
+  };
+
+  // Process files (cropped or original)
+  const processFiles = async (files) => {
     if (!files || files.length === 0) return;
 
     // Check subscription limits BEFORE processing
@@ -71,8 +118,9 @@ const CameraCapture = ({
 
     setError(null);
     setIsUploading(true);
+    setIsOpen(true); // Show upload modal for progress
 
-    const fileArray = Array.from(files).slice(0, filesToUpload); // Limit to allowed count
+    const fileArray = Array.from(files).slice(0, filesToUpload);
     const totalFiles = fileArray.length;
 
     // Initialize progress tracking
@@ -96,21 +144,12 @@ const CameraCapture = ({
           item.id === i ? { ...item, status: 'processing', progress: 25 } : item
         ));
 
-        // Skip file size validation for now - let the processor handle large files
-        // Only validate file type
-        if (file.type && !['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif'].includes(file.type.toLowerCase())) {
-          setUploadProgress(prev => prev.map(item =>
-            item.id === i ? { ...item, status: 'error', progress: 0, error: 'Invalid file type. Please select an image file.' } : item
-          ));
-          continue;
-        }
-
         // Update progress: uploading
         setUploadProgress(prev => prev.map(item =>
           item.id === i ? { ...item, status: 'uploading', progress: 50 } : item
         ));
 
-        // Process and upload - this will handle resizing large images
+        // Process and upload
         const result = await processAndUploadPhoto(
           file,
           currentUser.uid,
@@ -155,6 +194,17 @@ const CameraCapture = ({
     }
   };
 
+  // Handle file selection (camera or file picker)
+  const handleFileSelect = async (files) => {
+    if (shouldShowCropping) {
+      // Route to cropping flow
+      handleFileSelectForCropping(files);
+    } else {
+      // Process directly without cropping
+      await processFiles(files);
+    }
+  };
+
   // Handle camera/file input trigger
   const handleCameraClick = () => {
     // Check limits before opening file picker
@@ -164,6 +214,12 @@ const CameraCapture = ({
     }
 
     if (fileInputRef.current) {
+      // For cropping, restrict to single file
+      if (shouldShowCropping) {
+        fileInputRef.current.removeAttribute('multiple');
+      } else {
+        fileInputRef.current.setAttribute('multiple', 'multiple');
+      }
       fileInputRef.current.click();
     }
   };
@@ -179,11 +235,23 @@ const CameraCapture = ({
     if (fileInputRef.current) {
       // Remove capture attribute to force gallery selection
       fileInputRef.current.removeAttribute('capture');
+
+      // For cropping, restrict to single file
+      if (shouldShowCropping) {
+        fileInputRef.current.removeAttribute('multiple');
+      } else {
+        fileInputRef.current.setAttribute('multiple', 'multiple');
+      }
+
       fileInputRef.current.click();
+
       // Add capture back for next camera use
       setTimeout(() => {
         if (fileInputRef.current) {
           fileInputRef.current.setAttribute('capture', 'environment');
+          if (!shouldShowCropping) {
+            fileInputRef.current.setAttribute('multiple', 'multiple');
+          }
         }
       }, 100);
     }
@@ -223,7 +291,7 @@ const CameraCapture = ({
         {isUploading ? 'Uploading...' : buttonText}
       </button>
 
-      {/* Modal */}
+      {/* Upload Modal */}
       {isOpen && (
         <div className="modal-backdrop" onClick={handleClose}>
           <div className="modal-content max-w-md" onClick={(e) => e.stopPropagation()}>
@@ -245,12 +313,22 @@ const CameraCapture = ({
             {uploadProgress.length === 0 && !error && (
               <div className="space-y-4">
 
+                {/* Cropping Info */}
+                {shouldShowCropping && (
+                  <div className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-xl p-3 mb-4">
+                    <div className="text-indigo-800 dark:text-indigo-300 text-sm">
+                      <div className="font-medium mb-1">📸 Photo Cropping Enabled</div>
+                      <p>You can crop and resize your photos before uploading. Choose from Portrait, Square, or Landscape formats.</p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Camera/File Input */}
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
-                  multiple
+                  multiple={!shouldShowCropping}
                   capture="environment" // Use rear camera on mobile
                   onChange={(e) => handleFileSelect(e.target.files)}
                   className="hidden"
@@ -263,10 +341,15 @@ const CameraCapture = ({
                   className="w-full p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400"
                 >
                   <Camera className="mx-auto mb-2" size={32} />
-                  <div className="font-medium">Take Photo / Choose Files</div>
+                  <div className="font-medium">
+                    {shouldShowCropping ? 'Take Photo / Choose File' : 'Take Photo / Choose Files'}
+                  </div>
                   <div className="text-sm mt-1">Supports JPEG, PNG, WebP, HEIC</div>
                   <div className="text-xs mt-1 text-gray-500 dark:text-gray-400">
-                    Auto-resized to 1200px, compressed for web
+                    {shouldShowCropping
+                      ? 'Single photo with cropping options'
+                      : 'Auto-resized to 1200px, compressed for web'
+                    }
                   </div>
                 </button>
 
@@ -277,7 +360,7 @@ const CameraCapture = ({
                   className="w-full p-3 bg-gray-100 dark:bg-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-gray-700 dark:text-gray-300"
                 >
                   <Upload className="inline-block mr-2" size={16} />
-                  Choose from Gallery
+                  {shouldShowCropping ? 'Choose from Gallery' : 'Choose Multiple from Gallery'}
                 </button>
               </div>
             )}
@@ -364,6 +447,15 @@ const CameraCapture = ({
             )}
           </div>
         </div>
+      )}
+
+      {/* Project Photo Cropper */}
+      {showCropper && selectedFile && (
+        <ProjectPhotoCropper
+          file={selectedFile}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCropCancel}
+        />
       )}
 
       {/* Upgrade Modal */}

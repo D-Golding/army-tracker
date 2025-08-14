@@ -1,4 +1,4 @@
-// hooks/usePaints.js - Complete Paint Data Management with Achievement Triggers
+// hooks/usePaints.js - Complete Paint Data Management with Achievement Triggers and Project Support
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { queryKeys, invalidatePaintQueries, handleQueryError } from '../lib/queryClient';
 import { useGamificationOperations } from './useGamification';
@@ -10,6 +10,9 @@ import {
   getAirbrushPaints,
   getPaintsByLevel,
   getInventorySummary,
+  getAvailableColours,
+  findPaintsByColour,
+  getPaintsByColourAndStatus,
 
   // Paint operations
   newPaint,
@@ -26,8 +29,12 @@ import {
   updatePaintType,
   updatePaintName,
   updatePaintPhoto,
+  updatePaintColour,
   updateSprayPaintStatus,
-} from '../services/paintService';
+
+  // Project operations
+  updatePaintProjects,
+} from '../services/paints/index.js';
 
 // =====================================
 // PAINT LIST QUERIES
@@ -50,13 +57,50 @@ export const usePaints = (filter = 'all') => {
         case 'almostempty':
           // Get all collection paints and filter client-side to avoid index requirement
           const collectionPaints = await getCollectionPaints();
-          return collectionPaints.filter(paint => paint.level <= 10);
+          return collectionPaints.filter(paint => paint.level <= 20);
+        case 'usedinprojects':
+          // Get all paints and filter for those with projects
+          const allPaints = await getAllPaints();
+          return allPaints.filter(paint => paint.projects && paint.projects.length > 0);
         default:
           return await getAllPaints();
       }
     },
     meta: {
       errorMessage: 'Failed to load paints'
+    }
+  });
+};
+
+// Colour-based queries
+export const usePaintsByColour = (colour) => {
+  return useQuery({
+    queryKey: queryKeys.paints.byColour(colour),
+    queryFn: () => findPaintsByColour(colour),
+    enabled: !!colour,
+    meta: {
+      errorMessage: 'Failed to load paints by colour'
+    }
+  });
+};
+
+export const usePaintsByColourAndStatus = (colour, status) => {
+  return useQuery({
+    queryKey: queryKeys.paints.byColourAndStatus(colour, status),
+    queryFn: () => getPaintsByColourAndStatus(colour, status),
+    enabled: !!colour && !!status,
+    meta: {
+      errorMessage: 'Failed to load paints by colour and status'
+    }
+  });
+};
+
+export const useAvailableColours = () => {
+  return useQuery({
+    queryKey: queryKeys.paints.colours(),
+    queryFn: getAvailableColours,
+    meta: {
+      errorMessage: 'Failed to load available colours'
     }
   });
 };
@@ -92,7 +136,8 @@ export const useAddPaint = () => {
         status: paintData.status,
         level: paintData.level,
         photoURL: paintData.photoURL,
-        sprayPaint: paintData.sprayPaint
+        sprayPaint: paintData.sprayPaint,
+        colour: paintData.colour
       });
 
       const result = await newPaint(
@@ -103,7 +148,8 @@ export const useAddPaint = () => {
         paintData.status,
         paintData.level,
         paintData.photoURL,
-        paintData.sprayPaint
+        paintData.sprayPaint,
+        paintData.colour
       );
 
       // 🎨 TRIGGER PAINT COLLECTION ACHIEVEMENTS
@@ -112,6 +158,7 @@ export const useAddPaint = () => {
           paintName: paintData.name,
           brand: paintData.brand,
           type: paintData.type,
+          colour: paintData.colour,
           status: paintData.status
         });
         console.log('🎨 Paint collection achievements triggered for:', paintData.name);
@@ -269,6 +316,24 @@ export const useMoveToListed = () => {
   });
 };
 
+// Update paint projects mutation - NEW
+export const useUpdatePaintProjects = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ paintName, projectIds }) => updatePaintProjects(paintName, projectIds),
+    onSuccess: () => {
+      invalidatePaintQueries();
+    },
+    onError: (error) => {
+      console.error('Error updating paint projects:', error);
+    },
+    meta: {
+      errorMessage: 'Failed to update paint projects'
+    }
+  });
+};
+
 // =====================================
 // PAINT UPDATE MUTATIONS
 // =====================================
@@ -345,6 +410,24 @@ export const useUpdatePaintName = () => {
   });
 };
 
+// Update paint colour mutation
+export const useUpdatePaintColour = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ paintName, newColour }) => updatePaintColour(paintName, newColour),
+    onSuccess: () => {
+      invalidatePaintQueries();
+    },
+    onError: (error) => {
+      console.error('Error updating paint colour:', error);
+    },
+    meta: {
+      errorMessage: 'Failed to update paint colour'
+    }
+  });
+};
+
 // Update paint photo mutation
 export const useUpdatePaintPhoto = () => {
   const queryClient = useQueryClient();
@@ -403,6 +486,38 @@ export const usePaintListData = (filter = 'all') => {
   };
 };
 
+// Hook that provides paint data with colour filtering
+export const usePaintListDataWithColour = (filter = 'all', colour = null) => {
+  const paintsQuery = usePaints(filter);
+  const colourPaintsQuery = usePaintsByColour(colour);
+  const summaryQuery = usePaintSummary();
+
+  // Use colour-filtered data if colour is specified, otherwise use regular filter
+  const paints = colour ? (colourPaintsQuery.data || []) : (paintsQuery.data || []);
+  const isLoading = colour
+    ? (colourPaintsQuery.isLoading || summaryQuery.isLoading)
+    : (paintsQuery.isLoading || summaryQuery.isLoading);
+  const isError = colour
+    ? (colourPaintsQuery.isError || summaryQuery.isError)
+    : (paintsQuery.isError || summaryQuery.isError);
+
+  return {
+    paints,
+    summary: summaryQuery.data,
+    isLoading,
+    isError,
+    error: colour ? (colourPaintsQuery.error || summaryQuery.error) : (paintsQuery.error || summaryQuery.error),
+    refetch: () => {
+      if (colour) {
+        colourPaintsQuery.refetch();
+      } else {
+        paintsQuery.refetch();
+      }
+      summaryQuery.refetch();
+    }
+  };
+};
+
 // Hook that provides all paint operations for a component
 export const usePaintOperations = () => {
   const addPaint = useAddPaint();
@@ -412,6 +527,7 @@ export const usePaintOperations = () => {
   const moveToCollection = useMoveToCollection();
   const moveToWishlist = useMoveToWishlist();
   const moveToListed = useMoveToListed();
+  const updatePaintProjects = useUpdatePaintProjects();
 
   return {
     addPaint: addPaint.mutateAsync,
@@ -421,6 +537,7 @@ export const usePaintOperations = () => {
     moveToCollection: moveToCollection.mutateAsync,
     moveToWishlist: moveToWishlist.mutateAsync,
     moveToListed: moveToListed.mutateAsync,
+    updatePaintProjects: updatePaintProjects.mutateAsync,
 
     // Loading states
     isAdding: addPaint.isPending,
@@ -428,10 +545,12 @@ export const usePaintOperations = () => {
     isRefilling: refillPaint.isPending,
     isReducing: reducePaint.isPending,
     isMoving: moveToCollection.isPending || moveToWishlist.isPending || moveToListed.isPending,
+    isUpdatingProjects: updatePaintProjects.isPending,
 
     // Combined loading state
     isLoading: addPaint.isPending || deletePaint.isPending || refillPaint.isPending ||
                reducePaint.isPending || moveToCollection.isPending ||
-               moveToWishlist.isPending || moveToListed.isPending,
+               moveToWishlist.isPending || moveToListed.isPending ||
+               updatePaintProjects.isPending,
   };
 };

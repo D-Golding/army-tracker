@@ -1,9 +1,9 @@
-// hooks/useSubscription.js - Updated to be reactive to React Query cache changes
+// hooks/useSubscription.js - Fixed with proper photo limit checking for all contexts
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
-import { getAllPaints } from '../services/paintService';
-import { getAllProjects } from '../services/projectService';
+import { getAllPaints } from '../services/paints/index.js';
+import { getAllProjects } from '../services/projects/index.js';
 
 export const useSubscription = () => {
   const { userProfile } = useAuth();
@@ -18,7 +18,7 @@ export const useSubscription = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  // Complete subscription tier limits based on screenshots
+  // Complete subscription tier limits
   const TIER_LIMITS = {
     free: {
       paints: 25,
@@ -51,7 +51,6 @@ export const useSubscription = () => {
       stepsPerProject: 100,
       paintAssignmentsPerProject: 250,
       notesPerProject: 100,
-      // Exclusive features
       armyTracker: true,
       battleReports: true
     }
@@ -61,6 +60,69 @@ export const useSubscription = () => {
   const getCurrentLimits = () => {
     const tier = userProfile?.subscription?.tier || 'free';
     return TIER_LIMITS[tier] || TIER_LIMITS.free;
+  };
+
+  // STANDARDIZED PHOTO COUNTING FUNCTION
+  // Handles all photo data structures: existing projects, wizard form data, etc.
+  const getPhotoCount = (dataSource) => {
+    if (!dataSource) return 0;
+
+    // Handle wizard form data
+    if (dataSource.uploadedPhotos && Array.isArray(dataSource.uploadedPhotos)) {
+      return dataSource.uploadedPhotos.length;
+    }
+
+    // Handle existing project data - new format (photos array)
+    if (dataSource.photos && Array.isArray(dataSource.photos)) {
+      return dataSource.photos.length;
+    }
+
+    // Handle existing project data - old format (photoURLs array)
+    if (dataSource.photoURLs && Array.isArray(dataSource.photoURLs)) {
+      return dataSource.photoURLs.length;
+    }
+
+    // Handle existing project data - gallery structure
+    if (dataSource.photos && dataSource.photos.gallery && Array.isArray(dataSource.photos.gallery)) {
+      return dataSource.photos.gallery.length;
+    }
+
+    return 0;
+  };
+
+  // STANDARDIZED STEP COUNTING FUNCTION
+  const getStepCount = (dataSource) => {
+    if (!dataSource || !dataSource.steps || !Array.isArray(dataSource.steps)) {
+      return 0;
+    }
+    return dataSource.steps.length;
+  };
+
+  // STANDARDIZED PAINT ASSIGNMENT COUNTING FUNCTION
+  const getPaintAssignmentCount = (dataSource) => {
+    if (!dataSource || !dataSource.steps || !Array.isArray(dataSource.steps)) {
+      return 0;
+    }
+
+    return dataSource.steps.reduce((total, step) => {
+      return total + (step.paints ? step.paints.length : 0);
+    }, 0);
+  };
+
+  // STANDARDIZED NOTES COUNTING FUNCTION
+  const getNotesCount = (dataSource) => {
+    if (!dataSource) return 0;
+
+    // Handle different note storage formats
+    if (dataSource.projectNotes && Array.isArray(dataSource.projectNotes)) {
+      return dataSource.projectNotes.length;
+    }
+
+    if (dataSource.notes && Array.isArray(dataSource.notes)) {
+      return dataSource.notes.length;
+    }
+
+    return 0;
   };
 
   // Load current usage across all projects
@@ -76,11 +138,9 @@ export const useSubscription = () => {
       let paints, projects;
 
       if (cachedProjects && cachedPaints) {
-        // Use cached data if available
         paints = cachedPaints;
         projects = cachedProjects;
       } else {
-        // Fallback to direct API calls
         const [paintsResult, projectsResult] = await Promise.all([
           getAllPaints(),
           getAllProjects()
@@ -89,31 +149,17 @@ export const useSubscription = () => {
         projects = projectsResult;
       }
 
-      // Calculate total usage across all projects
+      // Calculate total usage using standardized counting functions
       let totalPhotos = 0;
       let totalSteps = 0;
       let totalPaintAssignments = 0;
       let totalNotes = 0;
 
       projects.forEach(project => {
-        // Count photos
-        const projectPhotos = (project.photoURLs?.length || 0) +
-                             (project.photos?.gallery?.length || 0);
-        totalPhotos += projectPhotos;
-
-        // Count steps
-        const projectSteps = project.steps?.length || 0;
-        totalSteps += projectSteps;
-
-        // Count paint assignments across all steps
-        if (project.steps) {
-          project.steps.forEach(step => {
-            totalPaintAssignments += step.paints?.length || 0;
-          });
-        }
-
-        // Count project notes
-        totalNotes += project.projectNotes?.length || 0;
+        totalPhotos += getPhotoCount(project);
+        totalSteps += getStepCount(project);
+        totalPaintAssignments += getPaintAssignmentCount(project);
+        totalNotes += getNotesCount(project);
       });
 
       setUsage({
@@ -131,8 +177,8 @@ export const useSubscription = () => {
     }
   };
 
-  // Check if user has reached a specific limit
-  const hasReachedLimit = (type, projectSpecific = false, projectData = null) => {
+  // IMPROVED: Check if user has reached a specific limit
+  const hasReachedLimit = (type, projectSpecific = false, dataSource = null) => {
     const limits = getCurrentLimits();
 
     switch (type) {
@@ -141,33 +187,27 @@ export const useSubscription = () => {
       case 'projects':
         return usage.projects >= limits.projects;
       case 'photos':
-        if (projectSpecific && projectData) {
-          const projectPhotos = (projectData.photoURLs?.length || 0) +
-                               (projectData.photos?.gallery?.length || 0);
-          return projectPhotos >= limits.photosPerProject;
+        if (projectSpecific && dataSource) {
+          const currentPhotos = getPhotoCount(dataSource);
+          return currentPhotos >= limits.photosPerProject;
         }
         return false;
       case 'steps':
-        if (projectSpecific && projectData) {
-          const projectSteps = projectData.steps?.length || 0;
-          return projectSteps >= limits.stepsPerProject;
+        if (projectSpecific && dataSource) {
+          const currentSteps = getStepCount(dataSource);
+          return currentSteps >= limits.stepsPerProject;
         }
         return false;
       case 'paintAssignments':
-        if (projectSpecific && projectData) {
-          let projectAssignments = 0;
-          if (projectData.steps) {
-            projectData.steps.forEach(step => {
-              projectAssignments += step.paints?.length || 0;
-            });
-          }
-          return projectAssignments >= limits.paintAssignmentsPerProject;
+        if (projectSpecific && dataSource) {
+          const currentAssignments = getPaintAssignmentCount(dataSource);
+          return currentAssignments >= limits.paintAssignmentsPerProject;
         }
         return false;
       case 'notes':
-        if (projectSpecific && projectData) {
-          const projectNotes = projectData.projectNotes?.length || 0;
-          return projectNotes >= limits.notesPerProject;
+        if (projectSpecific && dataSource) {
+          const currentNotes = getNotesCount(dataSource);
+          return currentNotes >= limits.notesPerProject;
         }
         return false;
       default:
@@ -175,8 +215,8 @@ export const useSubscription = () => {
     }
   };
 
-  // Get remaining allowance for a limit type
-  const getRemainingAllowance = (type, projectSpecific = false, projectData = null) => {
+  // IMPROVED: Get remaining allowance for a limit type
+  const getRemainingAllowance = (type, projectSpecific = false, dataSource = null) => {
     const limits = getCurrentLimits();
 
     switch (type) {
@@ -185,33 +225,27 @@ export const useSubscription = () => {
       case 'projects':
         return Math.max(0, limits.projects - usage.projects);
       case 'photos':
-        if (projectSpecific && projectData) {
-          const projectPhotos = (projectData.photoURLs?.length || 0) +
-                               (projectData.photos?.gallery?.length || 0);
-          return Math.max(0, limits.photosPerProject - projectPhotos);
+        if (projectSpecific && dataSource) {
+          const currentPhotos = getPhotoCount(dataSource);
+          return Math.max(0, limits.photosPerProject - currentPhotos);
         }
         return limits.photosPerProject;
       case 'steps':
-        if (projectSpecific && projectData) {
-          const projectSteps = projectData.steps?.length || 0;
-          return Math.max(0, limits.stepsPerProject - projectSteps);
+        if (projectSpecific && dataSource) {
+          const currentSteps = getStepCount(dataSource);
+          return Math.max(0, limits.stepsPerProject - currentSteps);
         }
         return limits.stepsPerProject;
       case 'paintAssignments':
-        if (projectSpecific && projectData) {
-          let projectAssignments = 0;
-          if (projectData.steps) {
-            projectData.steps.forEach(step => {
-              projectAssignments += step.paints?.length || 0;
-            });
-          }
-          return Math.max(0, limits.paintAssignmentsPerProject - projectAssignments);
+        if (projectSpecific && dataSource) {
+          const currentAssignments = getPaintAssignmentCount(dataSource);
+          return Math.max(0, limits.paintAssignmentsPerProject - currentAssignments);
         }
         return limits.paintAssignmentsPerProject;
       case 'notes':
-        if (projectSpecific && projectData) {
-          const projectNotes = projectData.projectNotes?.length || 0;
-          return Math.max(0, limits.notesPerProject - projectNotes);
+        if (projectSpecific && dataSource) {
+          const currentNotes = getNotesCount(dataSource);
+          return Math.max(0, limits.notesPerProject - currentNotes);
         }
         return limits.notesPerProject;
       default:
@@ -219,8 +253,8 @@ export const useSubscription = () => {
     }
   };
 
-  // Get usage percentage for a limit type
-  const getUsagePercentage = (type, projectSpecific = false, projectData = null) => {
+  // IMPROVED: Get usage percentage for a limit type
+  const getUsagePercentage = (type, projectSpecific = false, dataSource = null) => {
     const limits = getCurrentLimits();
 
     switch (type) {
@@ -229,33 +263,27 @@ export const useSubscription = () => {
       case 'projects':
         return Math.min(100, (usage.projects / limits.projects) * 100);
       case 'photos':
-        if (projectSpecific && projectData) {
-          const projectPhotos = (projectData.photoURLs?.length || 0) +
-                               (projectData.photos?.gallery?.length || 0);
-          return Math.min(100, (projectPhotos / limits.photosPerProject) * 100);
+        if (projectSpecific && dataSource) {
+          const currentPhotos = getPhotoCount(dataSource);
+          return Math.min(100, (currentPhotos / limits.photosPerProject) * 100);
         }
         return 0;
       case 'steps':
-        if (projectSpecific && projectData) {
-          const projectSteps = projectData.steps?.length || 0;
-          return Math.min(100, (projectSteps / limits.stepsPerProject) * 100);
+        if (projectSpecific && dataSource) {
+          const currentSteps = getStepCount(dataSource);
+          return Math.min(100, (currentSteps / limits.stepsPerProject) * 100);
         }
         return 0;
       case 'paintAssignments':
-        if (projectSpecific && projectData) {
-          let projectAssignments = 0;
-          if (projectData.steps) {
-            projectData.steps.forEach(step => {
-              projectAssignments += step.paints?.length || 0;
-            });
-          }
-          return Math.min(100, (projectAssignments / limits.paintAssignmentsPerProject) * 100);
+        if (projectSpecific && dataSource) {
+          const currentAssignments = getPaintAssignmentCount(dataSource);
+          return Math.min(100, (currentAssignments / limits.paintAssignmentsPerProject) * 100);
         }
         return 0;
       case 'notes':
-        if (projectSpecific && projectData) {
-          const projectNotes = projectData.projectNotes?.length || 0;
-          return Math.min(100, (projectNotes / limits.notesPerProject) * 100);
+        if (projectSpecific && dataSource) {
+          const currentNotes = getNotesCount(dataSource);
+          return Math.min(100, (currentNotes / limits.notesPerProject) * 100);
         }
         return 0;
       default:
@@ -263,8 +291,8 @@ export const useSubscription = () => {
     }
   };
 
-  // Check if user can perform an action
-  const canPerformAction = (type, count = 1, projectData = null) => {
+  // IMPROVED: Check if user can perform an action with proper counting
+  const canPerformAction = (type, count = 1, dataSource = null) => {
     const limits = getCurrentLimits();
 
     switch (type) {
@@ -273,35 +301,30 @@ export const useSubscription = () => {
       case 'add_project':
         return usage.projects + count <= limits.projects;
       case 'add_photo':
-        if (projectData) {
-          const projectPhotos = (projectData.photoURLs?.length || 0) +
-                               (projectData.photos?.gallery?.length || 0);
-          return projectPhotos + count <= limits.photosPerProject;
+        if (dataSource) {
+          const currentPhotos = getPhotoCount(dataSource);
+          return currentPhotos + count <= limits.photosPerProject;
         }
-        return true;
+        // If no dataSource provided, assume this is for a new project
+        return count <= limits.photosPerProject;
       case 'add_step':
-        if (projectData) {
-          const projectSteps = projectData.steps?.length || 0;
-          return projectSteps + count <= limits.stepsPerProject;
+        if (dataSource) {
+          const currentSteps = getStepCount(dataSource);
+          return currentSteps + count <= limits.stepsPerProject;
         }
-        return true;
+        return count <= limits.stepsPerProject;
       case 'add_paint_assignment':
-        if (projectData) {
-          let projectAssignments = 0;
-          if (projectData.steps) {
-            projectData.steps.forEach(step => {
-              projectAssignments += step.paints?.length || 0;
-            });
-          }
-          return projectAssignments + count <= limits.paintAssignmentsPerProject;
+        if (dataSource) {
+          const currentAssignments = getPaintAssignmentCount(dataSource);
+          return currentAssignments + count <= limits.paintAssignmentsPerProject;
         }
-        return true;
+        return count <= limits.paintAssignmentsPerProject;
       case 'add_note':
-        if (projectData) {
-          const projectNotes = projectData.projectNotes?.length || 0;
-          return projectNotes + count <= limits.notesPerProject;
+        if (dataSource) {
+          const currentNotes = getNotesCount(dataSource);
+          return currentNotes + count <= limits.notesPerProject;
         }
-        return true;
+        return count <= limits.notesPerProject;
       case 'access_army_tracker':
         return limits.armyTracker === true;
       case 'access_battle_reports':
@@ -374,18 +397,12 @@ export const useSubscription = () => {
   // Listen for changes to React Query cache and reload usage
   useEffect(() => {
     const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
-      // Only react to successful mutations that affect projects or paints
       if (event?.type === 'updated' && event?.query?.queryKey) {
         const queryKey = event.query.queryKey;
 
-        // React to project-related changes
         if (queryKey[0] === 'projects' ||
-            (queryKey[0] === 'project' && queryKey[1])) {
-          loadUsage();
-        }
-
-        // React to paint-related changes
-        if (queryKey[0] === 'paints') {
+            (queryKey[0] === 'project' && queryKey[1]) ||
+            queryKey[0] === 'paints') {
           loadUsage();
         }
       }
@@ -394,7 +411,7 @@ export const useSubscription = () => {
     return unsubscribe;
   }, [queryClient, userProfile]);
 
-  // Manual refresh function (can be called after adding/removing items)
+  // Manual refresh function
   const refreshUsage = () => {
     loadUsage();
   };
@@ -409,11 +426,17 @@ export const useSubscription = () => {
     limits: getCurrentLimits(),
     tierLimits: TIER_LIMITS,
 
-    // Limit checking functions
+    // Limit checking functions - now properly standardized
     hasReachedLimit,
     canPerformAction,
     getRemainingAllowance,
     getUsagePercentage,
+
+    // Utility counting functions - exposed for consistency
+    getPhotoCount,
+    getStepCount,
+    getPaintAssignmentCount,
+    getNotesCount,
 
     // Feature access
     hasExclusiveFeature,

@@ -15,10 +15,11 @@ const AddPaintToProjectModal = ({
   const [selectedPaints, setSelectedPaints] = useState([]);
   const [filterBrand, setFilterBrand] = useState('all');
   const [filterType, setFilterType] = useState('all');
+  const [filterStatus, setFilterStatus] = useState('all'); // New status filter
   const [isAdding, setIsAdding] = useState(false);
 
-  // Get user's paint collection
-  const { data: allPaints = [], isLoading } = usePaints('collection');
+  // Get paints from all sources
+  const { data: allPaints = [], isLoading } = usePaints('all'); // Changed from 'collection' to 'all'
   const { canPerformAction, getUpgradeMessage } = useSubscription();
 
   // Filter paints that aren't already in the project
@@ -44,10 +45,11 @@ const AddPaintToProjectModal = ({
                            paint.brand.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesBrand = filterBrand === 'all' || paint.brand === filterBrand;
       const matchesType = filterType === 'all' || paint.type === filterType;
+      const matchesStatus = filterStatus === 'all' || paint.status === filterStatus;
 
-      return matchesSearch && matchesBrand && matchesType;
+      return matchesSearch && matchesBrand && matchesType && matchesStatus;
     });
-  }, [availablePaints, searchTerm, filterBrand, filterType]);
+  }, [availablePaints, searchTerm, filterBrand, filterType, filterStatus]);
 
   // Handle paint selection
   const togglePaintSelection = (paint) => {
@@ -83,6 +85,7 @@ const AddPaintToProjectModal = ({
         paintName: paint.name,
         brand: paint.brand,
         type: paint.type,
+        status: paint.status, // Include the original status
         addedToProject: new Date().toISOString(),
         totalUsageSteps: 0
       }));
@@ -94,6 +97,7 @@ const AddPaintToProjectModal = ({
       setSearchTerm('');
       setFilterBrand('all');
       setFilterType('all');
+      setFilterStatus('all');
       onClose();
 
     } catch (error) {
@@ -110,7 +114,27 @@ const AddPaintToProjectModal = ({
     setSearchTerm('');
     setFilterBrand('all');
     setFilterType('all');
+    setFilterStatus('all');
     onClose();
+  };
+
+  // Get status badge styling
+  const getStatusBadge = (status) => {
+    const badges = {
+      collection: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300',
+      wishlist: 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300',
+      listed: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+    };
+    return badges[status] || badges.listed;
+  };
+
+  const getStatusLabel = (status) => {
+    const labels = {
+      collection: 'Owned',
+      wishlist: 'Wishlist',
+      listed: 'Reference'
+    };
+    return labels[status] || status;
   };
 
   if (!isOpen) return null;
@@ -148,7 +172,7 @@ const AddPaintToProjectModal = ({
           </div>
 
           {/* Filters */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <select
               value={filterBrand}
               onChange={(e) => setFilterBrand(e.target.value)}
@@ -169,6 +193,17 @@ const AddPaintToProjectModal = ({
               {types.map(type => (
                 <option key={type} value={type}>{type}</option>
               ))}
+            </select>
+
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="form-select"
+            >
+              <option value="all">All Sources</option>
+              <option value="collection">My Collection</option>
+              <option value="wishlist">Wishlist</option>
+              <option value="listed">Reference List</option>
             </select>
           </div>
         </div>
@@ -202,8 +237,8 @@ const AddPaintToProjectModal = ({
               {availablePaints.length === 0 ? (
                 <div>
                   <Palette className="mx-auto mb-3 text-gray-400" size={32} />
-                  <p>No paints in your collection</p>
-                  <p className="text-sm mt-1">Add paints to your inventory first</p>
+                  <p>No paints in your inventory</p>
+                  <p className="text-sm mt-1">Add paints to your collection, wishlist, or reference list first</p>
                 </div>
               ) : (
                 <div>
@@ -230,13 +265,21 @@ const AddPaintToProjectModal = ({
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        <div className="font-medium text-gray-900 dark:text-white">
-                          {paint.name}
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="font-medium text-gray-900 dark:text-white">
+                            {paint.name}
+                          </div>
+                          <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${getStatusBadge(paint.status)}`}>
+                            {getStatusLabel(paint.status)}
+                          </span>
                         </div>
                         <div className="text-sm text-gray-600 dark:text-gray-400">
                           {paint.brand} • {paint.type}
-                          {paint.level !== undefined && (
+                          {paint.level !== undefined && paint.status === 'collection' && (
                             <span className="ml-2">• {paint.level}% remaining</span>
+                          )}
+                          {paint.colour && (
+                            <span className="ml-2">• {paint.colour}</span>
                           )}
                         </div>
                       </div>

@@ -33,25 +33,14 @@ const CatalogImport = () => {
       try {
         const parsed = JSON.parse(value);
         if (Array.isArray(parsed)) {
-          // Validate required fields
-          const validPaints = parsed.filter(paint =>
-            paint.brand && paint.type && paint.name
-          );
-
-          if (validPaints.length !== parsed.length) {
-            setPreview({
-              valid: false,
-              error: `${parsed.length - validPaints.length} paints missing required fields (brand, type, name)`
-            });
-          } else {
-            setPreview({
-              valid: true,
-              count: parsed.length,
-              sample: parsed.slice(0, 3),
-              brands: [...new Set(parsed.map(p => p.brand))],
-              types: [...new Set(parsed.map(p => p.type))]
-            });
-          }
+          // REMOVED STRICT VALIDATION - just accept valid JSON arrays
+          setPreview({
+            valid: true,
+            count: parsed.length,
+            sample: parsed.slice(0, 3),
+            brands: [...new Set(parsed.map(p => p.brand).filter(Boolean))],
+            types: [...new Set(parsed.map(p => p.type).filter(Boolean))]
+          });
         } else {
           setPreview({
             valid: false,
@@ -156,12 +145,12 @@ const CatalogImport = () => {
         <textarea
           value={jsonData}
           onChange={handleJsonInput}
-          placeholder='[{"brand": "Citadel Colour", "type": "Base", "name": "Abaddon Black", "airbrush": true, "sprayPaint": false}, ...]'
+          placeholder='[{"brand": "Citadel Paints", "type": "Base", "name": "Abaddon Black", "colour": "black", "airbrush": false, "sprayPaint": false}, ...]'
           className="w-full h-40 p-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-xs font-mono"
           disabled={importing}
         />
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          Required fields: brand, type, name. Optional: airbrush (boolean), sprayPaint (boolean)
+          Paste your JSON array here. Validation will happen during import.
         </p>
       </div>
 

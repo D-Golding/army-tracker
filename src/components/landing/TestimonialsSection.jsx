@@ -7,7 +7,7 @@ const TestimonialsSection = () => {
     {
       name: 'Sarah M.',
       role: 'Warhammer 40K Player',
-      content: 'Finally, I can keep track of all my Citadel paints and never buy duplicates again!',
+      content: 'Finally, I can keep track of all my Citadel Paints paints and never buy duplicates again!',
       rating: 5
     },
     {

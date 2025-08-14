@@ -9,13 +9,16 @@ const NoteInput = ({
   onNoteDeleted,
   maxNotes = 10,
   placeholder = "Add a note...",
-  className = ''
+  className = '',
+  collapseAfter = null,
+  hideToggle = false
 }) => {
   const [newNote, setNewNote] = useState('');
   const [editingNote, setEditingNote] = useState(null);
   const [editContent, setEditContent] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
+  const [showAllNotes, setShowAllNotes] = useState(false);
 
   // Handle adding new note
   const handleAddNote = async () => {
@@ -74,6 +77,12 @@ const NoteInput = ({
 
   const canAddMore = notes.length < maxNotes;
 
+  // Get notes to display (collapse functionality)
+  const displayNotes = collapseAfter && showAllNotes === false
+    ? notes.slice(0, collapseAfter)
+    : notes;
+  const hasMoreNotes = collapseAfter && notes.length > collapseAfter;
+
   return (
     <div className={`space-y-3 ${className}`}>
 
@@ -101,8 +110,8 @@ const NoteInput = ({
         )}
       </div>
 
-      {/* Collapsible Toggle */}
-      {notes.length > 0 && (
+      {/* Legacy Collapsible Toggle - only show if hideToggle is false */}
+      {!hideToggle && notes.length > 0 && (
         <button
           onClick={() => setIsExpanded(!isExpanded)}
           className="flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
@@ -158,9 +167,9 @@ const NoteInput = ({
             <p className="text-xs mt-1">Add your first note above</p>
           )}
         </div>
-      ) : isExpanded ? (
+      ) : (hideToggle || isExpanded) ? (
         <div className="space-y-2">
-          {notes.map((note) => (
+          {displayNotes.map((note) => (
             <div
               key={note.id}
               className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 border border-gray-200 dark:border-gray-600"
@@ -227,6 +236,20 @@ const NoteInput = ({
               )}
             </div>
           ))}
+
+          {/* See All / Show Less Button - New collapse functionality */}
+          {hasMoreNotes && (
+            <button
+              onClick={() => setShowAllNotes(!showAllNotes)}
+              className="w-full p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl text-gray-600 dark:text-gray-400 hover:border-indigo-400 dark:hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center justify-center gap-2"
+            >
+              {showAllNotes ? (
+                <>Show Less</>
+              ) : (
+                <>See All ({notes.length - collapseAfter} more)</>
+              )}
+            </button>
+          )}
         </div>
       ) : null}
     </div>

@@ -1,16 +1,14 @@
-// components/dashboard/Profile/AccountDeletion.jsx - Redesigned with Clear Options
+// components/dashboard/Profile/AccountDeletion.jsx - Fixed without Email Verification
 import React, { useState } from 'react';
 import { AlertTriangle, Trash2, Clock, Shield, Mail, Calendar } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import DeletionConfirmation from './DeletionConfirmation';
 import DeletionScheduling from './DeletionScheduling';
-import DeletionEmailVerification from './DeletionEmailVerification';
 
 const AccountDeletion = () => {
   const { userProfile } = useAuth();
   const [deletionStep, setDeletionStep] = useState('overview');
   const [selectedOption, setSelectedOption] = useState(null);
-  const [deletionData, setDeletionData] = useState(null);
 
   // Check if user has active subscription
   const hasActiveSubscription = userProfile?.subscription?.tier !== 'free' &&
@@ -35,12 +33,6 @@ const AccountDeletion = () => {
   const handleBackToOverview = () => {
     setDeletionStep('overview');
     setSelectedOption(null);
-    setDeletionData(null);
-  };
-
-  const handleProceedToEmailVerification = (data) => {
-    setDeletionData(data);
-    setDeletionStep('email-verify');
   };
 
   if (deletionStep === 'immediate') {
@@ -48,7 +40,6 @@ const AccountDeletion = () => {
       <DeletionConfirmation
         type={selectedOption}
         onBack={handleBackToOverview}
-        onProceed={handleProceedToEmailVerification}
         hasActiveSubscription={hasActiveSubscription}
         subscriptionExpiryDate={subscriptionExpiryDate}
       />
@@ -59,18 +50,7 @@ const AccountDeletion = () => {
     return (
       <DeletionScheduling
         onBack={handleBackToOverview}
-        onProceed={handleProceedToEmailVerification}
         subscriptionExpiryDate={subscriptionExpiryDate}
-      />
-    );
-  }
-
-  if (deletionStep === 'email-verify') {
-    return (
-      <DeletionEmailVerification
-        onBack={handleBackToOverview}
-        deletionType={selectedOption}
-        deletionData={deletionData}
       />
     );
   }
@@ -279,7 +259,7 @@ const AccountDeletion = () => {
             </button>
 
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-              You'll verify this choice via email before any deletion occurs
+              Enter your password and confirm your choice on the next screen
             </p>
           </div>
         )}

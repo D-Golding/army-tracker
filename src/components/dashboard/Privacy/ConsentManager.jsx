@@ -123,15 +123,48 @@ const ConsentManager = () => {
       // Handle community access specifically
       if (consentId === 'community') {
         updates.communityAccess = newValue && !isMinor;
+
+        // 🆕 NEW: Auto-enable gamification email preferences when granting community access
+        if (newValue && !isMinor) {
+          updates['gamification.preferences.emailWeeklySummary'] = true;
+          updates['gamification.preferences.emailAchievements'] = true;
+          updates['gamification.preferences.emailStreaks'] = true;
+
+          console.log('✅ Auto-enabled gamification email preferences with community consent');
+        }
+
+        // 🆕 NEW: Disable gamification emails when revoking community access
+        if (!newValue) {
+          updates['gamification.preferences.emailWeeklySummary'] = false;
+          updates['gamification.preferences.emailAchievements'] = false;
+          updates['gamification.preferences.emailStreaks'] = false;
+
+          console.log('❌ Disabled gamification email preferences with community consent revoked');
+        }
       }
 
       await updateDoc(userRef, updates);
 
       // Update local state
-      await updateUserProfile({
+      const localUpdates = {
         privacyConsents: updatedConsents,
         ...(consentId === 'community' && { communityAccess: newValue && !isMinor })
-      });
+      };
+
+      // 🆕 NEW: Update local gamification preferences if community consent changed
+      if (consentId === 'community') {
+        localUpdates.gamification = {
+          ...userProfile.gamification,
+          preferences: {
+            ...userProfile.gamification?.preferences,
+            emailWeeklySummary: newValue && !isMinor,
+            emailAchievements: newValue && !isMinor,
+            emailStreaks: newValue && !isMinor
+          }
+        };
+      }
+
+      await updateUserProfile(localUpdates);
 
       console.log(`✅ Privacy consent updated: ${consentId} = ${newValue}`);
 
@@ -209,6 +242,23 @@ const ConsentManager = () => {
           </div>
         )}
 
+        {/* 🆕 NEW: Community Email Integration Notice */}
+        {!isMinor && currentConsents.community && (
+          <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 mb-4">
+            <div className="flex items-start gap-3">
+              <Check className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <p className="text-emerald-800 dark:text-emerald-200 font-medium mb-1">
+                  Achievement Emails Enabled
+                </p>
+                <p className="text-emerald-700 dark:text-emerald-300">
+                  Community consent automatically enables achievement and progress emails. You can adjust these in Communication Preferences.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Consent List */}
         <div className="space-y-4">
           {availableConsents.map((consent) => {
@@ -261,6 +311,15 @@ const ConsentManager = () => {
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                       {consent.description}
                     </p>
+
+                    {/* 🆕 NEW: Community consent email notice */}
+                    {consent.id === 'community' && !isMinor && (
+                      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 mb-3">
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          <strong>Note:</strong> Enabling community features automatically enables achievement and progress emails. You can manage these separately in Communication Preferences.
+                        </p>
+                      </div>
+                    )}
 
                     <div className="flex items-center justify-between">
                       <p className="text-xs text-gray-500 dark:text-gray-500">
