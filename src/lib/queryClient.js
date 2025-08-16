@@ -1,13 +1,15 @@
-// lib/queryClient.js - Professional React Query Configuration with Community Support
+// lib/queryClient.js - Professional React Query Configuration with Community Support and Pagination
 import { QueryClient } from '@tanstack/react-query';
 
 // Query key factory for consistent cache keys
 export const queryKeys = {
-  // Paint keys
+  // Paint keys - WITH PAGINATION
   paints: {
     all: ['paints'],
     lists: () => [...queryKeys.paints.all, 'list'],
     list: (filter) => [...queryKeys.paints.lists(), filter],
+    paginated: () => [...queryKeys.paints.all, 'paginated'],
+    paginatedList: (filter, pageSize) => [...queryKeys.paints.paginated(), filter, pageSize],
     summary: () => [...queryKeys.paints.all, 'summary'],
     detail: (paintName) => [...queryKeys.paints.all, 'detail', paintName],
     byColour: (colour) => [...queryKeys.paints.all, 'byColour', colour],
@@ -15,11 +17,13 @@ export const queryKeys = {
     colours: () => [...queryKeys.paints.all, 'colours'],
   },
 
-  // Project keys
+  // Project keys - UPDATED WITH PAGINATION
   projects: {
     all: ['projects'],
     lists: () => [...queryKeys.projects.all, 'list'],
     list: (filter) => [...queryKeys.projects.lists(), filter],
+    paginated: () => [...queryKeys.projects.all, 'paginated'],
+    paginatedList: (filter, pageSize) => [...queryKeys.projects.paginated(), filter, pageSize],
     summary: () => [...queryKeys.projects.all, 'summary'],
     detail: (projectId) => [...queryKeys.projects.all, 'detail', projectId],
     detailByName: (projectName) => [...queryKeys.projects.all, 'detailByName', projectName],
@@ -163,7 +167,7 @@ export const handleQueryError = (error) => {
   return 'An unexpected error occurred. Please try again.';
 };
 
-// Cache invalidation helpers for existing features
+// Cache invalidation helpers for existing features - UPDATED FOR PAGINATION
 export const invalidatePaintQueries = () => {
   queryClient.invalidateQueries({ queryKey: queryKeys.paints.all });
   queryClient.invalidateQueries({ queryKey: queryKeys.usage.all });

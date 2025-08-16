@@ -1,4 +1,4 @@
-// components/shared/wizard/photoGallery/PhotoSelectForm.jsx - Fix file processing
+// components/shared/wizard/photoGallery/PhotoSelectForm.jsx - Remove auto-processing, keep simple selection
 import React from 'react';
 import { Camera } from 'lucide-react';
 import PhotoUploadLimits from './PhotoUploadLimits';
@@ -59,7 +59,7 @@ const PhotoSelectForm = ({
     };
   };
 
-  // Handle file selection - just pass the raw files, let usePhotoFormData handle processing
+  // Handle file selection - just validate and pass through
   const handleFileSelect = (files) => {
     if (!files || files.length === 0) return;
 
@@ -68,10 +68,14 @@ const PhotoSelectForm = ({
 
     if (!validation.isValid) {
       console.error('File validation failed:', validation.errors);
+      // Show first error to user
+      if (validation.errors.length > 0) {
+        alert(validation.errors[0]);
+      }
       return;
     }
 
-    // Pass raw files to the parent - let usePhotoFormData handle the processing
+    // Pass validated files to parent - no processing here
     onFilesSelected(validation.validFiles);
   };
 
@@ -124,12 +128,12 @@ const PhotoSelectForm = ({
         errors={errors}
       />
 
-      {/* Help Text */}
+      {/* Next Steps Info */}
       <div className="text-center pt-4 border-t border-gray-200 dark:border-gray-700">
         <div className="text-sm text-gray-500 dark:text-gray-400 space-y-1">
-          <p>📸 Photos help showcase your project progress</p>
-          <p>🎨 Next step: crop and edit your photos (optional)</p>
-          <p>🏷️ Add labels and descriptions to organize your gallery</p>
+          <p>📸 Selected photos will be ready for editing in the next step</p>
+          <p>✂️ You can crop photos for better framing or keep originals</p>
+          <p>🏷️ Add titles and descriptions to organize your gallery</p>
         </div>
       </div>
     </div>

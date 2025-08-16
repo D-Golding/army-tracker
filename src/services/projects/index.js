@@ -1,10 +1,10 @@
 // services/projects/index.js
-// Central barrel export maintaining the same public API
+// Central barrel export maintaining the same public API with pagination support
 
 // Import from utils
 export { getCurrentUserId, getUserProjectsCollection } from './utils/projectHelpers.js';
 
-// Import from core
+// Import from core - UPDATED WITH PAGINATION
 export {
   createProject,
   createProjectLegacy,
@@ -20,7 +20,10 @@ export {
   getProjectsByStatus,
   getActiveProjects,
   getCompletedProjects,
-  getProjectStatusSummary
+  getProjectStatusSummary,
+  // NEW PAGINATED FUNCTIONS
+  getProjectsPaginated,
+  getProjectsByStatusPaginated
 } from './core/projectQueries.js';
 
 // Import from features

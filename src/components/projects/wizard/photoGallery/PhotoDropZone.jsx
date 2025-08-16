@@ -1,4 +1,4 @@
-// components/shared/wizard/photoGallery/PhotoDropZone.jsx - With debug logs
+// components/shared/wizard/photoGallery/PhotoDropZone.jsx - Clean version without debug logs
 import React, { useRef, useState } from 'react';
 import { Upload, Camera, FolderOpen } from 'lucide-react';
 
@@ -14,7 +14,6 @@ const PhotoDropZone = ({
 
   // Handle file input change
   const handleFileInput = (event) => {
-    console.log('📁 File input changed', event.target.files); // DEBUG
     const files = Array.from(event.target.files);
     if (files.length > 0) {
       onFilesSelected(files);
@@ -45,7 +44,6 @@ const PhotoDropZone = ({
 
     if (disabled) return;
 
-    console.log('📂 Files dropped', e.dataTransfer.files); // DEBUG
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
       onFilesSelected(files);
@@ -54,14 +52,12 @@ const PhotoDropZone = ({
 
   // Handle button clicks
   const handleChooseFiles = () => {
-    console.log('📁 Choose Files clicked', fileInputRef.current); // DEBUG
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
 
   const handleTakePhoto = () => {
-    console.log('📸 Take Photo clicked', cameraInputRef.current); // DEBUG
     if (cameraInputRef.current) {
       cameraInputRef.current.click();
     }
@@ -123,7 +119,11 @@ const PhotoDropZone = ({
           <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
             <p>Supports: JPEG, PNG, WebP, HEIC</p>
             <p>Maximum file size: 20MB</p>
-            <p>Up to {remainingSlots} more photos</p>
+            {remainingSlots > 0 ? (
+              <p>Up to {remainingSlots} more photos</p>
+            ) : (
+              <p className="text-amber-600 dark:text-amber-400 font-medium">Photo limit reached</p>
+            )}
           </div>
         </div>
 

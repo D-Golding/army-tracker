@@ -1,6 +1,6 @@
-// components/shared/wizard/photoGallery/PhotoReviewForm.jsx - Simplified review without file size
+// components/shared/wizard/photoGallery/PhotoReviewForm.jsx - Updated for new crop step flow
 import React from 'react';
-import { Check, Edit, Camera, FileText, Upload } from 'lucide-react';
+import { Check, Edit, Camera, FileText, Upload, Scissors, Image } from 'lucide-react';
 
 const PhotoReviewForm = ({
   formData,
@@ -12,7 +12,9 @@ const PhotoReviewForm = ({
 
   const stats = {
     totalFiles: files.length,
-    editedFiles: files.filter(f => f.editData?.croppedBlob && !f.editData?.skipEditing).length,
+    processedFiles: files.filter(f => f.editData?.isProcessed).length,
+    croppedFiles: files.filter(f => f.editData?.isProcessed && f.editData?.croppedBlob && !f.editData?.skipEditing).length,
+    originalFiles: files.filter(f => f.editData?.isProcessed && f.editData?.skipEditing).length,
     filesWithTitles: files.filter(f => f.metadata?.title && f.metadata.title.trim()).length,
     filesWithDescriptions: files.filter(f => f.metadata?.description && f.metadata.description.trim()).length
   };
@@ -32,29 +34,39 @@ const PhotoReviewForm = ({
       {/* Summary Statistics */}
       <div className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4">
         <h4 className="font-medium text-indigo-800 dark:text-indigo-300 mb-3">Upload Summary</h4>
-        <div className="grid grid-cols-3 gap-4 text-center">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           <div>
             <div className="text-lg font-bold text-indigo-900 dark:text-indigo-200">
               {stats.totalFiles}
             </div>
             <div className="text-xs text-indigo-700 dark:text-indigo-400">
-              Photo{stats.totalFiles !== 1 ? 's' : ''}
+              Total Photos
             </div>
           </div>
-          <div>
-            <div className="text-lg font-bold text-indigo-900 dark:text-indigo-200">
-              {stats.editedFiles}
+          {enableCropping && (
+            <div>
+              <div className="text-lg font-bold text-indigo-900 dark:text-indigo-200">
+                {stats.croppedFiles}
+              </div>
+              <div className="text-xs text-indigo-700 dark:text-indigo-400">
+                Cropped
+              </div>
             </div>
-            <div className="text-xs text-indigo-700 dark:text-indigo-400">
-              Edited
-            </div>
-          </div>
+          )}
           <div>
             <div className="text-lg font-bold text-indigo-900 dark:text-indigo-200">
               {stats.filesWithTitles}
             </div>
             <div className="text-xs text-indigo-700 dark:text-indigo-400">
               With Titles
+            </div>
+          </div>
+          <div>
+            <div className="text-lg font-bold text-indigo-900 dark:text-indigo-200">
+              {stats.filesWithDescriptions}
+            </div>
+            <div className="text-xs text-indigo-700 dark:text-indigo-400">
+              With Descriptions
             </div>
           </div>
         </div>
@@ -93,26 +105,39 @@ const PhotoReviewForm = ({
           </div>
         </ReviewSection>
 
-        {/* Photo Editing Review */}
+        {/* Photo Processing Review */}
         {enableCropping && (
           <ReviewSection
-            title="Photo Editing"
-            icon={Edit}
-            count={stats.editedFiles}
+            title="Photo Processing"
+            icon={Scissors}
+            count={stats.processedFiles}
             onEdit={() => onEditStep(1)}
           >
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              {stats.editedFiles > 0 ? (
-                <span>
-                  <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                    {stats.editedFiles}
-                  </span> photo{stats.editedFiles !== 1 ? 's' : ''} edited, {' '}
-                  <span className="font-medium">
-                    {stats.totalFiles - stats.editedFiles}
-                  </span> original{stats.totalFiles - stats.editedFiles !== 1 ? 's' : ''}
-                </span>
-              ) : (
-                <span>All photos will be uploaded as originals</span>
+            <div className="space-y-2">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                {stats.processedFiles === stats.totalFiles ? (
+                  <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                    <Check size={16} />
+                    <span>All photos processed</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                    <span>⚠️ {stats.totalFiles - stats.processedFiles} photos still need processing</span>
+                  </div>
+                )}
+              </div>
+
+              {stats.processedFiles > 0 && (
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Scissors size={14} className="text-emerald-600 dark:text-emerald-400" />
+                    <span>{stats.croppedFiles} cropped</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Image size={14} className="text-gray-600 dark:text-gray-400" />
+                    <span>{stats.originalFiles} kept as original</span>
+                  </div>
+                </div>
               )}
             </div>
           </ReviewSection>
@@ -142,6 +167,9 @@ const PhotoReviewForm = ({
                     </span> photo{stats.filesWithDescriptions !== 1 ? 's' : ''} have descriptions
                   </div>
                 )}
+                {stats.filesWithTitles === 0 && stats.filesWithDescriptions === 0 && (
+                  <span>No titles or descriptions added</span>
+                )}
               </div>
             ) : (
               <span>No titles or descriptions added</span>
@@ -150,16 +178,38 @@ const PhotoReviewForm = ({
         </ReviewSection>
       </div>
 
-      {/* Ready Message */}
-      <div className="text-center pt-4 border-t border-gray-200 dark:border-gray-700">
-        <div className="text-emerald-600 dark:text-emerald-400 font-medium mb-2 flex items-center justify-center gap-2">
-          <Upload size={16} />
-          Ready to upload your photos!
+      {/* Processing Status Check */}
+      {enableCropping && stats.processedFiles < stats.totalFiles && (
+        <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+          <div className="text-amber-800 dark:text-amber-300 text-sm">
+            <div className="font-medium mb-2">⚠️ Action Required</div>
+            <p className="mb-3">
+              You have {stats.totalFiles - stats.processedFiles} photo{stats.totalFiles - stats.processedFiles !== 1 ? 's' : ''} that haven't been processed yet.
+              Go back to the "Edit Photos" step to crop or skip them before uploading.
+            </p>
+            <button
+              onClick={() => onEditStep(1)}
+              className="btn-primary btn-sm"
+            >
+              <Scissors size={14} />
+              Process Photos
+            </button>
+          </div>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Click "Start Upload" to process and upload your {stats.totalFiles} photo{stats.totalFiles !== 1 ? 's' : ''}
-        </p>
-      </div>
+      )}
+
+      {/* Ready Message */}
+      {(!enableCropping || stats.processedFiles === stats.totalFiles) && (
+        <div className="text-center pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="text-emerald-600 dark:text-emerald-400 font-medium mb-2 flex items-center justify-center gap-2">
+            <Upload size={16} />
+            Ready to upload your photos!
+          </div>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Click "Start Upload" to process and upload your {stats.totalFiles} photo{stats.totalFiles !== 1 ? 's' : ''} to the project
+          </p>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,26 +1,87 @@
-// services/paints/paintQueries.js - All finding and getting functions
+// services/paints/paintQueries.js - All finding and getting functions with pagination
 import {
   collection,
   getDocs,
   query,
-  where
+  where,
+  orderBy,
+  limit,
+  startAfter
 } from 'firebase/firestore';
 import { db } from '../../firebase.js';
-import { auth } from '../../firebase.js';
+import { getUserPaintsCollection, getCurrentUserId } from '../shared/userHelpers.js';
 
-// Helper function to get current user ID
-const getCurrentUserId = () => {
-  const user = auth.currentUser;
-  if (!user) {
-    throw new Error('User not authenticated');
+// =====================================
+// PAGINATED QUERIES - NEW
+// =====================================
+
+export const getPaintsPaginated = async (pageSize = 20, lastDoc = null, filters = {}) => {
+  const paintsCollection = getUserPaintsCollection();
+
+  // Start with base query - always order by createdAt desc for consistency
+  let q = query(paintsCollection, orderBy('createdAt', 'desc'));
+
+  // Apply filters before pagination
+  if (filters.status) {
+    q = query(q, where('status', '==', filters.status));
   }
-  return user.uid;
+
+  // Add pagination
+  q = query(q, limit(pageSize));
+
+  if (lastDoc) {
+    q = query(q, startAfter(lastDoc));
+  }
+
+  const snapshot = await getDocs(q);
+
+  const results = [];
+  snapshot.forEach((doc) => {
+    results.push({ id: doc.id, ...doc.data() });
+  });
+
+  // Return both results and last document for next page
+  return {
+    paints: results,
+    lastDoc: snapshot.docs[snapshot.docs.length - 1] || null,
+    hasMore: results.length === pageSize
+  };
 };
 
-// Helper function to get user's paints collection reference
-const getUserPaintsCollection = () => {
-  const userId = getCurrentUserId();
-  return collection(db, 'users', userId, 'paints');
+export const getCollectionPaintsPaginated = async (pageSize = 20, lastDoc = null) => {
+  return await getPaintsPaginated(pageSize, lastDoc, { status: 'collection' });
+};
+
+export const getWishlistPaintsPaginated = async (pageSize = 20, lastDoc = null) => {
+  return await getPaintsPaginated(pageSize, lastDoc, { status: 'wishlist' });
+};
+
+export const getAirbrushPaintsPaginated = async (pageSize = 20, lastDoc = null) => {
+  const paintsCollection = getUserPaintsCollection();
+
+  let q = query(
+    paintsCollection,
+    where('airbrush', '==', true),
+    orderBy('createdAt', 'desc'),
+    limit(pageSize)
+  );
+
+  if (lastDoc) {
+    q = query(q, startAfter(lastDoc));
+  }
+
+  const snapshot = await getDocs(q);
+
+  const results = [];
+  snapshot.forEach((doc) => {
+    results.push({ id: doc.id, ...doc.data() });
+  });
+
+  return {
+    paints: results,
+    lastDoc: snapshot.docs[snapshot.docs.length - 1] || null,
+    hasMore: results.length === pageSize
+  };
 };
 
 // =====================================
@@ -129,7 +190,8 @@ export const getSprayPaints = async () => {
 
 export const getAllPaints = async () => {
   const paintsCollection = getUserPaintsCollection();
-  const snapshot = await getDocs(paintsCollection);
+  const q = query(paintsCollection, orderBy('createdAt', 'desc'));
+  const snapshot = await getDocs(q);
 
   const results = [];
   snapshot.forEach((doc) => {

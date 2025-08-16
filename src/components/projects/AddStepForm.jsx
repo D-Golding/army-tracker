@@ -5,6 +5,7 @@ import AddStepWizard from './wizard/step/AddStepWizard';
 const AddStepForm = ({
   onSubmit,
   onCancel,
+  onNextStep,
   isLoading = false,
   stepNumber = 1,
   projectData
@@ -32,6 +33,7 @@ const AddStepForm = ({
       <AddStepWizard
         onSubmit={onSubmit}
         onCancel={onCancel}
+        onNextStep={onNextStep}
         isLoading={isLoading}
         stepNumber={stepNumber}
         projectData={projectData}

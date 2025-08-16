@@ -1,13 +1,17 @@
-// services/projects/core/projectQueries.js - Handle new photo structure
+// services/projects/core/projectQueries.js - Handle new photo structure with pagination
 import {
   getDocs,
   doc,
   query,
   where,
-  getDoc
+  getDoc,
+  orderBy,
+  limit,
+  startAfter
 } from 'firebase/firestore';
 import { db } from '../../../firebase.js';
-import { getCurrentUserId, getUserProjectsCollection } from '../utils/projectHelpers.js';
+import { getCurrentUserId, getUserProjectsCollection } from '../../shared/userHelpers.js';
+import { DEFAULTS } from '../../shared/constants.js';
 import { getAllProjects, deleteProjectById } from './projectCore.js';
 import { findPaintName } from '../../paints/index.js';
 
@@ -29,9 +33,58 @@ const normalizeProjectPhotos = (projectData) => {
   return {
     ...projectData,
     photos: photos || [],
-    difficulty: projectData.difficulty || 'beginner'
+    difficulty: projectData.difficulty || DEFAULTS.PROJECT_DIFFICULTY
   };
 };
+
+// =====================================
+// PAGINATED QUERIES - NEW
+// =====================================
+
+export const getProjectsPaginated = async (pageSize = 5, lastDoc = null, filters = {}) => {
+  const projectsCollection = getUserProjectsCollection();
+
+  // Start with base query - always order by created desc for consistency
+  let q = query(projectsCollection, orderBy('created', 'desc'));
+
+  // Apply filters before pagination
+  if (filters.status) {
+    q = query(q, where('status', '==', filters.status));
+  }
+
+  // Add pagination
+  q = query(q, limit(pageSize));
+
+  if (lastDoc) {
+    q = query(q, startAfter(lastDoc));
+  }
+
+  const snapshot = await getDocs(q);
+
+  const results = [];
+  snapshot.forEach((doc) => {
+    const data = doc.data();
+    results.push({
+      id: doc.id,
+      ...normalizeProjectPhotos(data)
+    });
+  });
+
+  // Return both results and last document for next page
+  return {
+    projects: results,
+    lastDoc: snapshot.docs[snapshot.docs.length - 1] || null,
+    hasMore: results.length === pageSize
+  };
+};
+
+export const getProjectsByStatusPaginated = async (status, pageSize = 5, lastDoc = null) => {
+  return await getProjectsPaginated(pageSize, lastDoc, { status });
+};
+
+// =====================================
+// EXISTING FUNCTIONS - NON-PAGINATED
+// =====================================
 
 export const findProjectByName = async (projectName) => {
   const projectsCollection = getUserProjectsCollection();

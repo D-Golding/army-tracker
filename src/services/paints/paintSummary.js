@@ -4,28 +4,11 @@ import {
   getDocs
 } from 'firebase/firestore';
 import { db } from '../../firebase.js';
-import { auth } from '../../firebase.js';
-
-// Helper function to get current user ID
-const getCurrentUserId = () => {
-  const user = auth.currentUser;
-  if (!user) {
-    throw new Error('User not authenticated');
-  }
-  return user.uid;
-};
-
-// Helper function to get user's paints collection reference
-const getUserPaintsCollection = () => {
-  const userId = getCurrentUserId();
-  return collection(db, 'users', userId, 'paints');
-};
-
-// Helper function to get user's needToBuy collection reference
-const getUserNeedToBuyCollection = () => {
-  const userId = getCurrentUserId();
-  return collection(db, 'users', userId, 'needToBuy');
-};
+import {
+  getCurrentUserId,
+  getUserPaintsCollection,
+  getUserNeedToBuyCollection
+} from '../shared/userHelpers.js';
 
 // =====================================
 // DISPLAY AND VIEW FUNCTIONS

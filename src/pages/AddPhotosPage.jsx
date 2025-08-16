@@ -3,7 +3,7 @@
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import PhotoUploadWizard from '../components/shared/wizard/photoGallery/PhotoUploadWizard.jsx';
+import PhotoUploadWizard from '../components/projects/wizard/photoGallery/PhotoUploadWizard.jsx';
 import { useProject } from '../hooks/useProjects';
 import { useSubscription } from '../hooks/useSubscription';
 

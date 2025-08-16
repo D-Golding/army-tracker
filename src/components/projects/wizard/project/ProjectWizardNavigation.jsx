@@ -11,7 +11,8 @@ const ProjectWizardNavigation = ({
   onNext,
   onCancel,
   onSubmit,
-  isFormReady
+  isFormReady,
+  isNextDisabled = false // ADD THIS
 }) => {
   return (
     <div className="flex gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
@@ -42,7 +43,9 @@ const ProjectWizardNavigation = ({
             type="button"
             onClick={onSubmit}
             disabled={!isFormReady || isLoading}
-            className="btn-primary btn-md flex-1"
+            className={`btn-primary btn-md flex-1 ${
+              !isFormReady || isLoading ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
             {isLoading ? (
               <>
@@ -60,8 +63,10 @@ const ProjectWizardNavigation = ({
           <button
             type="button"
             onClick={onNext}
-            disabled={!canGoNext || isLoading}
-            className="btn-primary btn-md flex-1"
+            disabled={!canGoNext || isLoading || isNextDisabled}
+            className={`btn-primary btn-md flex-1 ${
+              !canGoNext || isLoading || isNextDisabled ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
             Next
             <ArrowRight size={16} />

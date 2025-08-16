@@ -1,10 +1,11 @@
-// components/projects/ProjectList.jsx - Updated with Enhanced Filtering
+// components/projects/ProjectList.jsx - Updated with Pagination Support
 import React, { useState, useMemo } from 'react';
-import { useProjectListData, useProjectOperations } from '../../hooks/useProjects';
+import { useProjectListDataPaginated, useProjectOperations } from '../../hooks/useProjects';
 import { useProjectPaintCheck } from '../../hooks/useProjects';
 import { useSubscription } from '../../hooks/useSubscription';
 import { useUpgradeModal } from '../../hooks/useUpgradeModal';
 import { useGamificationOperations } from '../../hooks/useGamification';
+import { MoreHorizontal } from 'lucide-react';
 import ProjectSummary from './ProjectSummary';
 import ProjectFilterDropdown from './ProjectFilterDropdown';
 import AddProjectButton from './AddProjectButton';
@@ -26,32 +27,45 @@ const ProjectList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProject, setSelectedProject] = useState(null);
 
-  // Get all project data and operations via React Query hooks
-  const { projects: allProjects, summary, isLoading, isError, error } = useProjectListData('all');
+  // Get paginated project data - UPDATED TO USE PAGINATION
+  const basicFilter = filters.status || 'all';
+  const {
+    projects: allPaginatedProjects,
+    summary,
+    isLoading,
+    isError,
+    error,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+    refetch
+  } = useProjectListDataPaginated(basicFilter, 5);
+
+  // Get project operations
   const {
     deleteProject,
     updateStatus,
     isLoading: isOperationLoading
   } = useProjectOperations();
 
-  // Get unique values for filter dropdowns
+  // Get unique values for filter dropdowns - UPDATED to use paginated data
   const availableManufacturers = useMemo(() =>
-    getUniqueManufacturers(allProjects), [allProjects]
+    getUniqueManufacturers(allPaginatedProjects), [allPaginatedProjects]
   );
 
   const availableGames = useMemo(() =>
-    getUniqueGames(allProjects), [allProjects]
+    getUniqueGames(allPaginatedProjects), [allPaginatedProjects]
   );
 
-  // Apply filters and grouping with search
+  // Apply filters and grouping with search - UPDATED to use paginated data
   const { filteredProjects, groupedProjects } = useMemo(() => {
-    if (!allProjects) return { filteredProjects: [], groupedProjects: {} };
+    if (!allPaginatedProjects) return { filteredProjects: [], groupedProjects: {} };
 
     // First apply search filter
-    let searchFiltered = allProjects;
+    let searchFiltered = allPaginatedProjects;
     if (searchTerm && searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase().trim();
-      searchFiltered = allProjects.filter(project =>
+      searchFiltered = allPaginatedProjects.filter(project =>
         (project.name && project.name.toLowerCase().includes(searchLower)) ||
         (project.description && project.description.toLowerCase().includes(searchLower)) ||
         (project.manufacturer && project.manufacturer.toLowerCase().includes(searchLower)) ||
@@ -64,7 +78,7 @@ const ProjectList = () => {
     const grouped = groupProjects(filtered, filters.group);
 
     return { filteredProjects: filtered, groupedProjects: grouped };
-  }, [allProjects, filters, searchTerm]);
+  }, [allPaginatedProjects, filters, searchTerm]);
 
   // Get subscription info
   const { canPerformAction, currentTier, usage, limits, refreshUsage } = useSubscription();
@@ -99,7 +113,7 @@ const ProjectList = () => {
   // Handle status update
   const handleStatusUpdate = async (projectName, newStatus) => {
     try {
-      const oldProject = allProjects.find(p => p.name === projectName);
+      const oldProject = allPaginatedProjects.find(p => p.name === projectName);
       const oldStatus = oldProject?.status;
 
       await updateStatus({ projectName, newStatus });
@@ -172,14 +186,15 @@ const ProjectList = () => {
   return (
     <div>
 
-      {/* Debug Info - Shows current subscription limits */}
+      {/* Debug Info - Shows current subscription limits and pagination info */}
       <div className="mb-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-xl text-xs">
         <div className="font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Subscription Debug ({currentTier})
+          Subscription Debug ({currentTier}) | Loaded: {allPaginatedProjects.length} projects
         </div>
         <div className="text-gray-600 dark:text-gray-400">
           Projects: {usage.projects}/{limits.projects} |
-          Can add: {canPerformAction('add_project') ? 'YES' : 'NO'}
+          Can add: {canPerformAction('add_project') ? 'YES' : 'NO'} |
+          Has more: {hasNextPage ? 'YES' : 'NO'}
         </div>
         {!areFiltersDefault(filters) || (searchTerm && searchTerm.trim()) && (
           <div className="mt-1 text-indigo-600 dark:text-indigo-400">
@@ -244,9 +259,14 @@ const ProjectList = () => {
           {(!areFiltersDefault(filters) || (searchTerm && searchTerm.trim())) && (
             <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
               <div className="text-sm text-blue-800 dark:text-blue-300">
-                Showing {filteredProjects.length} of {allProjects?.length || 0} projects
+                Showing {filteredProjects.length} of {allPaginatedProjects?.length || 0} loaded projects
                 {filters.group !== 'none' && (
                   <span> in {Object.keys(groupedProjects).length} groups</span>
+                )}
+                {hasNextPage && (
+                  <span className="ml-2 text-blue-600 dark:text-blue-400">
+                    (More projects available - click "Load More" below)
+                  </span>
                 )}
               </div>
             </div>
@@ -262,8 +282,34 @@ const ProjectList = () => {
             isLoading={isOperationLoading}
           />
 
+          {/* Load More Button - NEW */}
+          {hasNextPage && (
+            <div className="text-center mt-6 mb-4">
+              <button
+                onClick={fetchNextPage}
+                disabled={isFetchingNextPage || isOperationLoading}
+                className="btn-primary btn-md px-8"
+              >
+                {isFetchingNextPage ? (
+                  <>
+                    <div className="loading-spinner mr-2"></div>
+                    Loading more projects...
+                  </>
+                ) : (
+                  <>
+                    <MoreHorizontal className="inline-block mr-2" size={20} />
+                    Load More Projects
+                  </>
+                )}
+              </button>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                {allPaginatedProjects.length} projects loaded so far
+              </div>
+            </div>
+          )}
+
           {/* Empty State */}
-          {filteredProjects.length === 0 && allProjects?.length > 0 && (
+          {filteredProjects.length === 0 && allPaginatedProjects?.length > 0 && (
             <div className="empty-state">
               <div className="mb-2">No projects match your current filters</div>
               <button
@@ -272,13 +318,18 @@ const ProjectList = () => {
               >
                 Clear All Filters
               </button>
+              {hasNextPage && (
+                <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                  Or try loading more projects first
+                </div>
+              )}
             </div>
           )}
 
           {/* No Projects State */}
-          {allProjects?.length === 0 && (
+          {allPaginatedProjects?.length === 0 && (
             <div className="empty-state">
-              No projects found
+              No projects found. Create your first project to get started!
             </div>
           )}
         </>

@@ -1,6 +1,6 @@
-// components/PaintList.jsx - Updated with simplified bulk delete
+// components/PaintList.jsx - Updated with pagination support
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { Plus, Info, Trash2, X, ChevronUp, Zap } from 'lucide-react';
+import { Plus, Info, Trash2, X, ChevronUp, Zap, MoreHorizontal } from 'lucide-react';
 import PaintCard from './PaintCard';
 import SummaryCards from './SummaryCards';
 import AddPaintForm from './AddPaintForm';
@@ -8,9 +8,11 @@ import PaintSearchFilter from '../paints/PaintSearchFilter';
 import PaintDisclaimerModal from '../shared/PaintDisclaimerModal';
 import ConfirmationModal from '../common/ConfirmationModal';
 import UpgradeModal from '../shared/UpgradeModal';
-import { usePaintListData, usePaintOperations } from '../../hooks/usePaints.js';
+import { usePaintListDataPaginated, usePaintOperations } from '../../hooks/usePaints.js';
+import { usePaintSummary } from '../../hooks/usePaints.js';
 import { filterPaints, getFilterSummary } from '../../utils/paintFilterUtils.js';
 import { useAuth } from '../../contexts/AuthContext.jsx';
+import { useSubscription } from '../../hooks/useSubscription';
 
 const PaintList = () => {
   const [showAddForm, setShowAddForm] = useState(false);
@@ -50,8 +52,21 @@ const PaintList = () => {
     });
   };
 
-  // Get all paint data via React Query hooks
-  const { paints: allPaints, summary, isLoading, isError, error } = usePaintListData('all');
+  // Get paginated paint data - UPDATED TO USE PAGINATION
+  const basicFilter = activeFilters.basicFilter || 'all';
+  const {
+    paints: allPaginatedPaints,
+    summary,
+    isLoading,
+    isError,
+    error,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+    refetch
+  } = usePaintListDataPaginated(basicFilter, 20);
+
+  // Get paint operations
   const {
     addPaint,
     deletePaint,
@@ -65,9 +80,11 @@ const PaintList = () => {
   } = usePaintOperations();
 
   // Check if user has reached paint limit
-  const paintLimit = userProfile?.limits?.paints || 25;
+  const { limits } = useSubscription();
+  const paintLimit = limits.paints;
   const currentTier = userProfile?.subscription?.tier || 'free';
-  const hasReachedPaintLimit = allPaints.length >= paintLimit;
+  const totalPaintsCount = summary?.total || 0;
+  const hasReachedPaintLimit = totalPaintsCount >= paintLimit;
 
   // Handle add paint button click
   const handleAddPaintClick = () => {
@@ -77,9 +94,11 @@ const PaintList = () => {
       setShowAddForm(!showAddForm);
     }
   };
+
+  // Apply client-side filtering to paginated results
   const filteredPaints = useMemo(() => {
-    return filterPaints(allPaints, activeFilters);
-  }, [allPaints, activeFilters]);
+    return filterPaints(allPaginatedPaints, activeFilters);
+  }, [allPaginatedPaints, activeFilters]);
 
   // Handle filter changes from the search component
   const handleFiltersChange = useCallback((filters) => {
@@ -260,7 +279,7 @@ const PaintList = () => {
           {hasReachedPaintLimit ? (
             <>
               <Zap className="inline-block mr-2" size={20} />
-              Upgrade to add more ({allPaints.length}/{paintLimit})
+              Upgrade to add more ({totalPaintsCount}/{paintLimit})
             </>
           ) : showAddForm ? (
             <>
@@ -270,7 +289,7 @@ const PaintList = () => {
           ) : (
             <>
               <Plus className="inline-block mr-2" size={20} />
-              Add New Paint ({allPaints.length}/{paintLimit})
+              Add New Paint ({totalPaintsCount}/{paintLimit})
             </>
           )}
         </button>
@@ -350,10 +369,10 @@ const PaintList = () => {
       />
 
       {/* Filter Results Summary */}
-      {allPaints.length > 0 && (
+      {totalPaintsCount > 0 && (
         <div className="mb-4 flex justify-between items-center">
           <div className="text-sm text-gray-600 dark:text-gray-400">
-            {getFilterSummary(activeFilters, filteredPaints.length, allPaints.length)}
+            {getFilterSummary(activeFilters, filteredPaints.length, allPaginatedPaints.length)}
           </div>
           <button
             onClick={() => setShowDisclaimer(true)}
@@ -395,19 +414,42 @@ const PaintList = () => {
             ))}
           </div>
 
+          {/* Load More Button - NEW */}
+          {hasNextPage && !bulkDeleteMode && (
+            <div className="text-center mt-6 mb-4">
+              <button
+                onClick={fetchNextPage}
+                disabled={isFetchingNextPage || isOperationLoading}
+                className="btn-primary btn-md px-8"
+              >
+                {isFetchingNextPage ? (
+                  <>
+                    <div className="loading-spinner mr-2"></div>
+                    Loading more...
+                  </>
+                ) : (
+                  <>
+                    <MoreHorizontal className="inline-block mr-2" size={20} />
+                    Load More Paints
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+
           {/* Empty State */}
-          {filteredPaints.length === 0 && allPaints.length > 0 && (
+          {filteredPaints.length === 0 && allPaginatedPaints.length > 0 && (
             <div className="empty-state">
               No paints match your current filters. Try adjusting your search criteria.
             </div>
           )}
 
           {/* No paints at all */}
-          {allPaints.length === 0 && (
+          {allPaginatedPaints.length === 0 && (
             <div className="empty-state">
               No paints found. Add your first paint to get started!
             </div>
-            )}
+          )}
         </>
       )}
 

@@ -22,30 +22,18 @@ import PaymentForm from './components/payment/PaymentForm';
 import ForgotPasswordPage from './components/auth/ForgotPasswordPage';
 import NotificationManager from './components/NotificationManager';
 import AccountRecovery from './components/AccountRecovery';
+import GlobalFooter from './components/GlobalFooter';
 
 // Import Dashboard Layout (the real one)
 import UserDashboardLayout from './components/dashboard/UserDashboardLayout';
 
-// Import Email System
-import emailManager from './services/emailManager';
 
 // Main App Router Component
 const AppRouter = () => {
   const { authState, isLoading, AUTH_STATES } = useAuth();
 
-  // Initialize email system when app loads
-  useEffect(() => {
-    const initializeEmailSystem = async () => {
-      try {
-        await emailManager.initialize();
-        console.log('✅ Email system initialized');
-      } catch (error) {
-        console.error('❌ Email system initialization failed:', error);
-      }
-    };
 
-    initializeEmailSystem();
-  }, []);
+
 
   // Show loading screen during initial auth check
   if (isLoading) {
@@ -173,15 +161,18 @@ const AppRouter = () => {
       <Route
         path="/privacy-policy"
         element={
-          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
-            <div className="max-w-4xl mx-auto">
-              <h1 className="text-3xl font-bold mb-8">Privacy Policy</h1>
-              <div className="card-base card-padding-lg">
-                <p className="text-gray-600 dark:text-gray-400">
-                  Privacy policy content coming soon. We are committed to protecting your privacy and complying with GDPR, COPPA, and other international privacy laws.
-                </p>
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+            <div className="flex-1 p-8">
+              <div className="max-w-4xl mx-auto">
+                <h1 className="text-3xl font-bold mb-8">Privacy Policy</h1>
+                <div className="card-base card-padding-lg">
+                  <p className="text-gray-600 dark:text-gray-400">
+                    Privacy policy content coming soon. We are committed to protecting your privacy and complying with GDPR, COPPA, and other international privacy laws.
+                  </p>
+                </div>
               </div>
             </div>
+            <GlobalFooter />
           </div>
         }
       />
@@ -189,15 +180,18 @@ const AppRouter = () => {
       <Route
         path="/terms-of-service"
         element={
-          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
-            <div className="max-w-4xl mx-auto">
-              <h1 className="text-3xl font-bold mb-8">Terms of Service</h1>
-              <div className="card-base card-padding-lg">
-                <p className="text-gray-600 dark:text-gray-400">
-                  Terms of service content coming soon.
-                </p>
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+            <div className="flex-1 p-8">
+              <div className="max-w-4xl mx-auto">
+                <h1 className="text-3xl font-bold mb-8">Terms of Service</h1>
+                <div className="card-base card-padding-lg">
+                  <p className="text-gray-600 dark:text-gray-400">
+                    Terms of service content coming soon.
+                  </p>
+                </div>
               </div>
             </div>
+            <GlobalFooter />
           </div>
         }
       />
@@ -205,15 +199,18 @@ const AppRouter = () => {
       <Route
         path="/cookie-policy"
         element={
-          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
-            <div className="max-w-4xl mx-auto">
-              <h1 className="text-3xl font-bold mb-8">Cookie Policy</h1>
-              <div className="card-base card-padding-lg">
-                <p className="text-gray-600 dark:text-gray-400">
-                  Cookie policy content coming soon.
-                </p>
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+            <div className="flex-1 p-8">
+              <div className="max-w-4xl mx-auto">
+                <h1 className="text-3xl font-bold mb-8">Cookie Policy</h1>
+                <div className="card-base card-padding-lg">
+                  <p className="text-gray-600 dark:text-gray-400">
+                    Cookie policy content coming soon.
+                  </p>
+                </div>
               </div>
             </div>
+            <GlobalFooter />
           </div>
         }
       />
@@ -222,36 +219,39 @@ const AppRouter = () => {
       <Route
         path="/support"
         element={
-          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
-            <div className="max-w-2xl mx-auto">
-              <h1 className="text-3xl font-bold mb-8">Support & Contact</h1>
-              <div className="card-base card-padding-lg">
-                <div className="space-y-6">
-                  <div>
-                    <h2 className="text-xl font-semibold mb-2">Get Help</h2>
-                    <p className="text-gray-600 dark:text-gray-400 mb-2">
-                      Need assistance? Contact our support team:
-                    </p>
-                    <a href="mailto:support@tabletoptactica.com"
-                      className="text-indigo-600 dark:text-indigo-400 hover:underline"
-                    >
-                      support@tabletoptactica.com
-                    </a>
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-semibold mb-2">Data Protection</h2>
-                    <p className="text-gray-600 dark:text-gray-400 mb-2">
-                      For data protection queries or to exercise your rights under GDPR:
-                    </p>
-                    <a href="mailto:privacy@tabletoptactica.com"
-                      className="text-indigo-600 dark:text-indigo-400 hover:underline"
-                    >
-                      privacy@tabletoptactica.com
-                    </a>
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+            <div className="flex-1 p-8">
+              <div className="max-w-2xl mx-auto">
+                <h1 className="text-3xl font-bold mb-8">Support & Contact</h1>
+                <div className="card-base card-padding-lg">
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-xl font-semibold mb-2">Get Help</h2>
+                      <p className="text-gray-600 dark:text-gray-400 mb-2">
+                        Need assistance? Contact our support team:
+                      </p>
+                      <a href="mailto:support@tabletoptactica.com"
+                        className="text-indigo-600 dark:text-indigo-400 hover:underline"
+                      >
+                        support@tabletoptactica.com
+                      </a>
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold mb-2">Data Protection</h2>
+                      <p className="text-gray-600 dark:text-gray-400 mb-2">
+                        For data protection queries or to exercise your rights under GDPR:
+                      </p>
+                      <a href="mailto:privacy@tabletoptactica.com"
+                        className="text-indigo-600 dark:text-indigo-400 hover:underline"
+                      >
+                        privacy@tabletoptactica.com
+                      </a>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+            <GlobalFooter />
           </div>
         }
       />

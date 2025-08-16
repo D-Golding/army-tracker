@@ -1,11 +1,13 @@
-// components/shared/wizard/photoGallery/PhotoUploadWizard.jsx - Pass photo metadata to project
-import React, { useState } from 'react';
+// components/shared/wizard/photoGallery/PhotoUploadWizard.jsx - Enhanced for project creation mode with scroll
+import React, { useState, useEffect } from 'react';
 import { addProjectPhotosById, updateProjectCoverPhoto } from '../../../../services/projects/features/projectPhotos.js';
+import { processAndUploadPhoto } from '../../../../services/photoService';
+import { useAuth } from '../../../../contexts/AuthContext';
 import { usePhotoWizard } from '../../../../hooks/photoGallery/usePhotoWizard';
 import { usePhotoFormData } from '../../../../hooks/photoGallery/usePhotoFormData';
 import { validatePhotoWizardForm } from '../../../../utils/photoWizardValidation';
 import PhotoSelectForm from './PhotoSelectForm';
-import PhotoEditForm from './PhotoEditForm';
+import PhotoCropStep from './PhotoCropStep';
 import PhotoDetailsForm from './PhotoDetailsForm';
 import PhotoReviewForm from './PhotoReviewForm';
 import PhotoUploadForm from './PhotoUploadForm';
@@ -17,9 +19,12 @@ const PhotoUploadWizard = ({
   projectData,
   photoType = 'project',
   maxPhotos = 10,
-  enableCropping = true
+  enableCropping = true,
+  mode = 'standalone' // 'standalone' or 'project-creation'
 }) => {
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadStarted, setUploadStarted] = useState(false);
+  const { currentUser } = useAuth();
   const { formData, addFiles, removeFile, updateFileMetadata, updateFileEditData, clearForm } = usePhotoFormData();
 
   const {
@@ -30,6 +35,11 @@ const PhotoUploadWizard = ({
     totalSteps,
     getStepInfo
   } = usePhotoWizard(enableCropping);
+
+  // Scroll to top when step changes within photo wizard
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentStep]);
 
   // Handle file selection
   const handleFilesSelected = (files) => {
@@ -54,56 +64,87 @@ const PhotoUploadWizard = ({
   // Check if all photos are processed (for edit step)
   const areAllPhotosProcessed = () => {
     const files = formData.files || [];
-    if (files.length === 0) return true; // If no files, consider "processed"
+    if (files.length === 0) return true;
     return files.every(file => file.editData?.isProcessed === true);
   };
 
   // Check if next button should be disabled
   const isNextDisabled = () => {
-    // Always require files to be selected (except on edit step where they're already selected)
+    // Always require files to be selected
     if (!formData.files || formData.files.length === 0) {
       return true;
     }
 
-    // ONLY disable on the edit step (step 1) when cropping is enabled and not all photos are processed
+    // ONLY disable on the crop step when cropping is enabled and not all photos are processed
     if (enableCropping && currentStep === 1) {
       return !areAllPhotosProcessed();
     }
 
-    // For all other steps (select, details, review), don't disable based on processing
     return false;
   };
 
-  // Handle step navigation
-  const handleNext = async () => {
-    // Don't proceed if next is disabled
-    if (isNextDisabled()) {
-      return;
+  // Handle upload for project creation mode
+  const handleProjectCreationUpload = async () => {
+    try {
+      console.log('📸 Processing photos for project creation mode');
+      const uploadResults = [];
+
+      for (const file of formData.files) {
+        // Determine which file to upload (cropped or original)
+        let fileToUpload;
+        let uploadMetadata = {
+          title: file.metadata?.title || file.fileName.replace(/\.[^/.]+$/, ''),
+          description: file.metadata?.description || '',
+          originalFileName: file.fileName,
+          wasEdited: false,
+          aspectRatio: 'original'
+        };
+
+        if (file.editData?.isProcessed && file.editData?.croppedBlob && !file.editData?.skipEditing) {
+          // Use cropped version
+          fileToUpload = file.editData.croppedBlob;
+          uploadMetadata.wasEdited = true;
+          uploadMetadata.aspectRatio = file.editData.aspectRatio || 'custom';
+        } else {
+          // Use original file
+          fileToUpload = file.originalFile;
+          uploadMetadata.wasEdited = false;
+        }
+
+        try {
+          // Upload the file
+          const result = await processAndUploadPhoto(
+            fileToUpload,
+            currentUser.uid,
+            projectId,
+            photoType
+          );
+
+          if (result.success) {
+            uploadResults.push({
+              downloadURL: result.downloadURL,
+              storagePath: result.storagePath,
+              metadata: uploadMetadata
+            });
+          }
+        } catch (error) {
+          console.error('Upload error:', error);
+        }
+      }
+
+      clearForm();
+      onComplete(uploadResults);
+    } catch (error) {
+      console.error('Project creation upload failed:', error);
+      clearForm();
+      onComplete([]);
     }
-
-    // Validate current step - PASS THE CURRENT STEP TO VALIDATION
-    const { isValid, errors } = validatePhotoWizardForm(formData, enableCropping, currentStep);
-
-    if (!isValid) {
-      console.error('Validation failed:', errors);
-      return;
-    }
-
-    // If we're on the review step (last step), start upload immediately
-    if (currentStep === totalSteps - 1) {
-      console.log('🚀 Starting upload immediately from review step');
-      setIsUploading(true);
-      return;
-    }
-
-    nextStep();
   };
 
-  // Handle upload completion - ADD PHOTOS TO EXISTING PROJECT GALLERY WITH METADATA
-  const handleUploadComplete = async (uploadResults) => {
+  // Handle upload completion for standalone mode
+  const handleStandaloneUpload = async (uploadResults) => {
     try {
       console.log('📸 Adding photos with metadata to existing project gallery:', uploadResults);
-      console.log('📁 Project ID:', projectId);
 
       // Transform upload results into photo objects with metadata
       const photoObjects = uploadResults.map(result => ({
@@ -116,30 +157,18 @@ const PhotoUploadWizard = ({
         aspectRatio: result.metadata?.aspectRatio || 'original'
       }));
 
-      console.log('📋 Photo objects to add:', photoObjects);
-
-      // Add photo objects to existing project using the updated service function
+      // Add photo objects to existing project
       await addProjectPhotosById(projectId, photoObjects);
-      console.log('✅ Photos with metadata added to project gallery successfully');
 
-      // Set cover photo if none exists (use first photo URL)
+      // Set cover photo if none exists
       if (!projectData.coverPhotoURL && photoObjects.length > 0) {
         await updateProjectCoverPhoto(projectId, photoObjects[0].url);
-        console.log('🌟 Cover photo set:', photoObjects[0].url);
       }
 
       clearForm();
       onComplete(uploadResults);
     } catch (error) {
-      console.error('❌ Error adding photos to project:', error);
-      console.error('📋 Error details:', {
-        code: error.code,
-        message: error.message,
-        projectId,
-        photoObjects: uploadResults.map(r => r.downloadURL)
-      });
-
-      // Still complete the wizard but show an error
+      console.error('Error adding photos to project:', error);
       clearForm();
       onComplete(uploadResults);
     }
@@ -148,16 +177,76 @@ const PhotoUploadWizard = ({
   // Handle upload cancellation
   const handleUploadCancel = () => {
     setIsUploading(false);
-    // Stay on the review step when cancelling upload
+    setUploadStarted(false);
+  };
+
+  // Effect to handle project creation upload start
+  useEffect(() => {
+    if (isUploading && mode === 'project-creation' && !uploadStarted) {
+      setUploadStarted(true);
+      handleProjectCreationUpload();
+    }
+  }, [isUploading, mode, uploadStarted]);
+
+  // Handle step navigation
+  const handleNext = async () => {
+    if (isNextDisabled()) {
+      return;
+    }
+
+    // Validate current step
+    const { isValid, errors } = validatePhotoWizardForm(formData, enableCropping, currentStep);
+
+    if (!isValid) {
+      console.error('Validation failed:', errors);
+      return;
+    }
+
+    // If we're on the review step, start upload immediately
+    if (currentStep === totalSteps - 1) {
+      console.log('🚀 Starting upload immediately from review step');
+      setIsUploading(true);
+      return;
+    }
+
+    nextStep();
+  };
+
+  // Handle previous step navigation
+  const handlePrevious = () => {
+    previousStep();
   };
 
   const stepInfo = getStepInfo(currentStep);
 
-  // Show upload form when uploading (overlays the current step)
+  // Show upload form when uploading
   if (isUploading) {
+    // For project creation mode, show simple processing message
+    if (mode === 'project-creation') {
+      return (
+        <div>
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+              Processing Photos
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Processing and uploading your photos
+            </p>
+          </div>
+
+          <div className="flex items-center justify-center py-8">
+            <div className="loading-spinner-primary"></div>
+            <span className="ml-3 text-gray-600 dark:text-gray-400">
+              Processing {formData.files?.length || 0} photos...
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    // For standalone mode, use the full upload form
     return (
       <div>
-        {/* Upload Header */}
         <div className="mb-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
             Uploading Photos
@@ -167,12 +256,11 @@ const PhotoUploadWizard = ({
           </p>
         </div>
 
-        {/* Upload Progress */}
         <PhotoUploadForm
           formData={formData}
           projectId={projectId}
           photoType={photoType}
-          onComplete={handleUploadComplete}
+          onComplete={handleStandaloneUpload}
           onCancel={handleUploadCancel}
         />
       </div>
@@ -230,10 +318,15 @@ const PhotoUploadWizard = ({
         )}
 
         {currentStep === 1 && enableCropping && (
-          <PhotoEditForm
+          <PhotoCropStep
             formData={formData}
             onFileEdited={handleFileEdited}
-            enableCropping={enableCropping}
+            onAllPhotosProcessed={() => {
+              // Auto-advance when all photos are processed
+              if (areAllPhotosProcessed()) {
+                setTimeout(() => nextStep(), 500);
+              }
+            }}
           />
         )}
 
@@ -265,7 +358,7 @@ const PhotoUploadWizard = ({
 
         {currentStep > 0 && (
           <button
-            onClick={previousStep}
+            onClick={handlePrevious}
             className="btn-secondary btn-md"
           >
             Previous
@@ -277,7 +370,10 @@ const PhotoUploadWizard = ({
           disabled={isNextDisabled()}
           className="btn-primary btn-md flex-1"
         >
-          {currentStep === totalSteps - 1 ? 'Start Upload' : 'Next'}
+          {currentStep === totalSteps - 1 ?
+            (mode === 'project-creation' ? 'Add Photos' : 'Start Upload') :
+            'Next'
+          }
         </button>
       </div>
     </div>

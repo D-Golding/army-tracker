@@ -1,52 +1,118 @@
-// hooks/photoGallery/usePhotoWizard.js - Updated to remove separate upload step
-import { useState } from 'react';
+// hooks/photoGallery/usePhotoWizard.js - Add crop step to wizard flow
+import { useState, useMemo } from 'react';
 
 export const usePhotoWizard = (enableCropping = true) => {
   const [currentStep, setCurrentStep] = useState(0);
 
-  // Calculate total steps based on features (removed upload step)
-  const totalSteps = enableCropping ? 4 : 3; // Select, Edit (optional), Details, Review
+  // Define wizard steps based on whether cropping is enabled
+  const WIZARD_STEPS = useMemo(() => {
+    const baseSteps = [
+      {
+        id: 'select',
+        title: 'Select Photos',
+        description: 'Choose photos to upload and add to your project'
+      }
+    ];
 
-  const nextStep = () => {
-    if (currentStep < totalSteps - 1) {
-      setCurrentStep(currentStep + 1);
+    if (enableCropping) {
+      baseSteps.push({
+        id: 'crop',
+        title: 'Edit Photos',
+        description: 'Crop your photos for better framing or keep originals'
+      });
     }
+
+    baseSteps.push(
+      {
+        id: 'details',
+        title: 'Photo Details',
+        description: 'Add titles and descriptions to your photos (optional)'
+      },
+      {
+        id: 'review',
+        title: 'Review & Upload',
+        description: 'Review your photos and details before uploading'
+      }
+    );
+
+    return baseSteps;
+  }, [enableCropping]);
+
+  const totalSteps = WIZARD_STEPS.length;
+
+  // Navigation functions
+  const nextStep = () => {
+    setCurrentStep(prev => Math.min(prev + 1, totalSteps - 1));
   };
 
   const previousStep = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+    setCurrentStep(prev => Math.max(prev - 1, 0));
+  };
+
+  const goToStep = (stepIndex) => {
+    if (stepIndex >= 0 && stepIndex < totalSteps) {
+      setCurrentStep(stepIndex);
     }
   };
 
-  const goToStep = (step) => {
-    if (step >= 0 && step < totalSteps) {
-      setCurrentStep(step);
-    }
+  // Step info helper
+  const getStepInfo = (stepIndex = currentStep) => {
+    return WIZARD_STEPS[stepIndex] || WIZARD_STEPS[0];
   };
 
-  const getStepInfo = (step) => {
-    const steps = enableCropping ? [
-      { title: 'Select Photos', description: 'Choose photos to upload' },
-      { title: 'Edit Photos', description: 'Crop and adjust your photos' },
-      { title: 'Add Details', description: 'Add titles and descriptions' },
-      { title: 'Review', description: 'Review before uploading' }
-    ] : [
-      { title: 'Select Photos', description: 'Choose photos to upload' },
-      { title: 'Add Details', description: 'Add titles and descriptions' },
-      { title: 'Review', description: 'Review before uploading' }
-    ];
+  // Step validation helpers
+  const isStepCompleted = (stepIndex) => {
+    return stepIndex < currentStep;
+  };
 
-    return steps[step] || steps[0];
+  const isStepActive = (stepIndex) => {
+    return stepIndex === currentStep;
+  };
+
+  const isStepAccessible = (stepIndex) => {
+    // Allow access to current step and previous steps
+    return stepIndex <= currentStep;
+  };
+
+  const isLastStep = () => {
+    return currentStep === totalSteps - 1;
+  };
+
+  const isFirstStep = () => {
+    return currentStep === 0;
+  };
+
+  // Navigation state helpers
+  const canGoNext = () => {
+    return currentStep < totalSteps - 1;
+  };
+
+  const canGoPrevious = () => {
+    return currentStep > 0;
   };
 
   return {
+    // Step configuration
+    WIZARD_STEPS,
     currentStep,
-    setCurrentStep,
+    totalSteps,
+
+    // Navigation
     nextStep,
     previousStep,
     goToStep,
-    totalSteps,
-    getStepInfo
+    setCurrentStep,
+
+    // Step info
+    getStepInfo,
+    isStepCompleted,
+    isStepActive,
+    isStepAccessible,
+    isLastStep,
+    isFirstStep,
+
+    // Navigation state
+    canGoNext,
+    canGoPrevious
   };
 };

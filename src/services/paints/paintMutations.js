@@ -11,59 +11,29 @@ import {
   getDoc
 } from 'firebase/firestore';
 import { db } from '../../firebase.js';
-import { auth } from '../../firebase.js';
+import {
+  getCurrentUserId,
+  getUserPaintsCollection,
+  getUserNeedToBuyCollection
+} from '../shared/userHelpers.js';
+import { validateTierAccess } from '../shared/tierHelpers.js';
 import { findPaintName } from './paintQueries.js';
 
-// Helper function to get current user ID
-const getCurrentUserId = () => {
-  const user = auth.currentUser;
-  if (!user) {
-    throw new Error('User not authenticated');
-  }
-  return user.uid;
-};
-
-// Helper function to get user's paints collection reference
-const getUserPaintsCollection = () => {
-  const userId = getCurrentUserId();
-  return collection(db, 'users', userId, 'paints');
-};
-
-// Helper function to get user's needToBuy collection reference
-const getUserNeedToBuyCollection = () => {
-  const userId = getCurrentUserId();
-  return collection(db, 'users', userId, 'needToBuy');
-};
-
-// Helper function to check tier limits
-const checkPaintLimit = async () => {
-  const userId = getCurrentUserId();
-
-  // Get user's profile to check tier limits
-  const userDoc = await getDoc(doc(db, 'users', userId));
-  if (!userDoc.exists()) {
-    throw new Error('User profile not found');
-  }
-
-  const userProfile = userDoc.data();
-  const paintLimit = userProfile.limits?.paints || 25; // Default to free tier limit
+/**
+ * Check tier limits before adding paint
+ * @param {string} userId - Optional user ID, uses current user if not provided
+ * @returns {Promise<Object>} Tier check result
+ */
+const checkPaintTierLimit = async (userId = null) => {
+  const uid = userId || getCurrentUserId();
+  const paintsCollection = getUserPaintsCollection(uid);
 
   // Count current paints
-  const paintsCollection = getUserPaintsCollection();
   const paintsSnapshot = await getDocs(paintsCollection);
   const currentPaintCount = paintsSnapshot.size;
 
-  // Check if adding one more paint would exceed the limit
-  if (currentPaintCount >= paintLimit) {
-    const tierName = userProfile.subscription?.tier || 'free';
-    throw new Error(`Paint limit reached! You can have up to ${paintLimit} paints on the ${tierName} tier. Upgrade your subscription to add more paints.`);
-  }
-
-  return {
-    currentCount: currentPaintCount,
-    limit: paintLimit,
-    remaining: paintLimit - currentPaintCount
-  };
+  // Check tier limits using shared utility
+  return await validateTierAccess('paints', currentPaintCount, uid);
 };
 
 // =====================================
@@ -72,7 +42,7 @@ const checkPaintLimit = async () => {
 
 export const newPaint = async (brand, airbrush, type, name, status = "listed", level, photoURL = null, sprayPaint = false, colour) => {
   // Check tier limits before adding paint
-  await checkPaintLimit();
+  await checkPaintTierLimit();
 
   const paintsCollection = getUserPaintsCollection();
 
@@ -314,26 +284,12 @@ export const deletePaint = async (searchTerm) => {
 export const addMultiplePaints = async (paintsArray) => {
   // Check if adding all these paints would exceed the limit
   const userId = getCurrentUserId();
-
-  // Get user's profile to check tier limits
-  const userDoc = await getDoc(doc(db, 'users', userId));
-  if (!userDoc.exists()) {
-    throw new Error('User profile not found');
-  }
-
-  const userProfile = userDoc.data();
-  const paintLimit = userProfile.limits?.paints || 25;
-
-  // Count current paints
   const paintsCollection = getUserPaintsCollection();
   const paintsSnapshot = await getDocs(paintsCollection);
   const currentPaintCount = paintsSnapshot.size;
 
-  // Check if adding all paints would exceed limit
-  if (currentPaintCount + paintsArray.length > paintLimit) {
-    const tierName = userProfile.subscription?.tier || 'free';
-    throw new Error(`Cannot add ${paintsArray.length} paints. You have ${currentPaintCount}/${paintLimit} paints on the ${tierName} tier. Upgrade to add more paints.`);
-  }
+  // Use shared tier validation
+  await validateTierAccess('paints', currentPaintCount + paintsArray.length, userId);
 
   let addedCount = 0;
 

@@ -1,7 +1,8 @@
-// components/layouts/AdminLayout.jsx - Updated with /app prefix
+// components/layouts/AdminLayout.jsx - Updated with GlobalFooter
 import React, { useState } from 'react';
 import { Outlet, Link } from 'react-router-dom';
 import { ArrowLeft, Shield, Moon, Sun } from 'lucide-react';
+import GlobalFooter from '../GlobalFooter';
 
 const AdminLayout = () => {
   const [darkMode, setDarkMode] = useState(false);
@@ -12,8 +13,8 @@ const AdminLayout = () => {
 
   return (
     <div className={darkMode ? 'dark' : ''}>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
-        <div className="max-w-6xl mx-auto bg-gray-50 dark:bg-gray-900 min-h-screen">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors flex flex-col">
+        <div className="max-w-6xl mx-auto bg-gray-50 dark:bg-gray-900 min-h-screen flex flex-col">
 
           {/* Admin Header */}
           <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-6 relative overflow-hidden">
@@ -45,7 +46,7 @@ const AdminLayout = () => {
           </div>
 
           {/* Admin Content */}
-          <main className="p-6">
+          <main className="flex-1 p-6">
             <Outlet />
           </main>
 
@@ -61,6 +62,9 @@ const AdminLayout = () => {
               </p>
             </div>
           </footer>
+
+          {/* Global Footer */}
+          <GlobalFooter />
         </div>
       </div>
     </div>

@@ -13,6 +13,7 @@ import StepReviewForm from './StepReviewForm';
 const AddStepWizard = ({
   onSubmit,
   onCancel,
+  onNextStep,
   isLoading = false,
   stepNumber = 1,
   projectData
@@ -64,7 +65,7 @@ const AddStepWizard = ({
       notes: formData.notes
     };
 
-    console.log('🔄 Submitting step data:', stepData);
+    console.log('📄 Submitting step data:', stepData);
     console.log('📸 Step photo URL:', stepData.stepPhoto);
 
     try {
@@ -75,20 +76,32 @@ const AddStepWizard = ({
     }
   };
 
-  // Handle navigation
+  // Handle navigation with scroll to top
   const handleNext = () => {
     goNext();
     setError(null);
+    // Scroll to top when moving to next step
+    if (onNextStep) {
+      onNextStep();
+    }
   };
 
   const handlePrevious = () => {
     goPrevious();
     setError(null);
+    // Scroll to top when moving to previous step
+    if (onNextStep) {
+      onNextStep();
+    }
   };
 
   const handleStepClick = (stepIndex) => {
     goToStep(stepIndex);
     setError(null);
+    // Scroll to top when clicking on step indicator
+    if (onNextStep) {
+      onNextStep();
+    }
   };
 
   // Handle field changes

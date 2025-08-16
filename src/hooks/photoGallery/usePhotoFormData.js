@@ -1,80 +1,66 @@
-// hooks/photoGallery/usePhotoFormData.js - Photo data state management
-import { useState, useCallback, useMemo } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+// hooks/photoGallery/usePhotoFormData.js - Updated for new crop step flow
+import { useState, useCallback } from 'react';
 
 export const usePhotoFormData = () => {
   const [formData, setFormData] = useState({
-    files: [] // Array of file objects with metadata
+    files: []
   });
 
-  // File object structure:
-  // {
-  //   id: string,
-  //   originalFile: File,
-  //   fileName: string,
-  //   fileSize: number,
-  //   fileType: string,
-  //   previewUrl: string,
-  //   editData: {
-  //     isProcessed: boolean,
-  //     skipEditing: boolean,
-  //     croppedBlob: Blob | null,
-  //     croppedPreviewUrl: string | null,
-  //     aspectRatio: string,
-  //     cropSettings: object
-  //   },
-  //   metadata: {
-  //     title: string,
-  //     description: string
-  //   },
-  //   uploadData: {
-  //     isUploaded: boolean,
-  //     downloadURL: string | null,
-  //     storagePath: string | null,
-  //     uploadProgress: number,
-  //     uploadError: string | null
-  //   }
-  // }
+  // Generate unique ID for files
+  const generateFileId = () => {
+    return `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  };
 
-  // Add new files to the wizard
-  const addFiles = useCallback((fileList) => {
-    const newFiles = Array.from(fileList).map(file => ({
-      id: uuidv4(),
-      originalFile: file,
-      fileName: file.name,
-      fileSize: file.size,
-      fileType: file.type,
-      previewUrl: URL.createObjectURL(file),
-      editData: {
-        isProcessed: false,
-        skipEditing: false,
-        croppedBlob: null,
-        croppedPreviewUrl: null,
-        aspectRatio: 'original',
-        cropSettings: null
-      },
-      metadata: {
-        title: '',
-        description: ''
-      },
-      uploadData: {
-        isUploaded: false,
-        downloadURL: null,
-        storagePath: null,
-        uploadProgress: 0,
-        uploadError: null
-      }
-    }));
+  // Create preview URL for a file
+  const createPreviewUrl = (file) => {
+    try {
+      return URL.createObjectURL(file);
+    } catch (error) {
+      console.error('Error creating preview URL:', error);
+      return null;
+    }
+  };
+
+  // Add files to the form data
+  const addFiles = useCallback((newFiles) => {
+    if (!newFiles || newFiles.length === 0) return;
+
+    const processedFiles = newFiles.map(file => {
+      const fileId = generateFileId();
+      const previewUrl = createPreviewUrl(file);
+
+      return {
+        id: fileId,
+        originalFile: file,
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        previewUrl,
+        metadata: {
+          title: '',
+          description: '',
+          tags: []
+        },
+        editData: {
+          isProcessed: false,
+          skipEditing: false,
+          croppedBlob: null,
+          croppedPreviewUrl: null,
+          aspectRatio: 'original',
+          cropSettings: null
+        }
+      };
+    });
 
     setFormData(prev => ({
       ...prev,
-      files: [...prev.files, ...newFiles]
+      files: [...prev.files, ...processedFiles]
     }));
 
-    return newFiles.map(f => f.id); // Return IDs for reference
+    console.log('📁 Added files to form data:', processedFiles.map(f => f.fileName));
   }, []);
 
-  // Remove a file from the wizard
+  // Remove a file from the form data
   const removeFile = useCallback((fileId) => {
     setFormData(prev => {
       const fileToRemove = prev.files.find(f => f.id === fileId);
@@ -94,27 +80,11 @@ export const usePhotoFormData = () => {
         files: prev.files.filter(f => f.id !== fileId)
       };
     });
+
+    console.log('🗑️ Removed file from form data:', fileId);
   }, []);
 
-  // Update file edit data (cropping results) - RENAMED for consistency
-  const updateFileEditData = useCallback((fileId, editData) => {
-    setFormData(prev => ({
-      ...prev,
-      files: prev.files.map(file =>
-        file.id === fileId
-          ? {
-              ...file,
-              editData: {
-                ...file.editData,
-                ...editData
-              }
-            }
-          : file
-      )
-    }));
-  }, []);
-
-  // Update file metadata (title, description)
+  // Update file metadata
   const updateFileMetadata = useCallback((fileId, metadata) => {
     setFormData(prev => ({
       ...prev,
@@ -130,64 +100,70 @@ export const usePhotoFormData = () => {
           : file
       )
     }));
+
+    console.log('🏷️ Updated file metadata:', fileId, metadata);
   }, []);
 
-  // Update upload progress and results
-  const updateFileUpload = useCallback((fileId, uploadData) => {
+  // Update file edit data (for cropping step)
+  const updateFileEditData = useCallback((fileId, editData) => {
     setFormData(prev => ({
       ...prev,
       files: prev.files.map(file =>
         file.id === fileId
           ? {
               ...file,
-              uploadData: {
-                ...file.uploadData,
-                ...uploadData
+              editData: {
+                ...file.editData,
+                ...editData
               }
             }
           : file
       )
     }));
+
+    console.log('✂️ Updated file edit data:', fileId, editData);
   }, []);
 
-  // Batch update metadata for multiple files
-  const batchUpdateMetadata = useCallback((metadata) => {
-    setFormData(prev => ({
-      ...prev,
-      files: prev.files.map(file => ({
-        ...file,
-        metadata: {
-          ...file.metadata,
-          ...metadata
-        }
-      }))
-    }));
-  }, []);
+  // Get files by processing status
+  const getFilesByStatus = useCallback((status) => {
+    switch (status) {
+      case 'unprocessed':
+        return formData.files.filter(f => !f.editData?.isProcessed);
+      case 'processed':
+        return formData.files.filter(f => f.editData?.isProcessed);
+      case 'cropped':
+        return formData.files.filter(f => f.editData?.isProcessed && f.editData?.croppedBlob && !f.editData?.skipEditing);
+      case 'original':
+        return formData.files.filter(f => f.editData?.isProcessed && f.editData?.skipEditing);
+      default:
+        return formData.files;
+    }
+  }, [formData.files]);
 
-  // Mark file as processed (skip editing)
-  const markFileAsProcessed = useCallback((fileId, skipEditing = false) => {
-    updateFileEditData(fileId, {
-      isProcessed: true,
-      skipEditing
-    });
-  }, [updateFileEditData]);
+  // Check if all files are processed
+  const areAllFilesProcessed = useCallback(() => {
+    if (formData.files.length === 0) return true;
+    return formData.files.every(f => f.editData?.isProcessed === true);
+  }, [formData.files]);
 
-  // Mark all files as processed (skip editing for all)
-  const markAllFilesAsProcessed = useCallback(() => {
-    setFormData(prev => ({
-      ...prev,
-      files: prev.files.map(file => ({
-        ...file,
-        editData: {
-          ...file.editData,
-          isProcessed: true,
-          skipEditing: true
-        }
-      }))
-    }));
-  }, []);
+  // Get processing statistics
+  const getProcessingStats = useCallback(() => {
+    const total = formData.files.length;
+    const processed = formData.files.filter(f => f.editData?.isProcessed).length;
+    const cropped = formData.files.filter(f => f.editData?.isProcessed && f.editData?.croppedBlob && !f.editData?.skipEditing).length;
+    const original = formData.files.filter(f => f.editData?.isProcessed && f.editData?.skipEditing).length;
 
-  // Clear all data (for cancellation) - RENAMED for consistency
+    return {
+      total,
+      processed,
+      unprocessed: total - processed,
+      cropped,
+      original,
+      progressPercentage: total > 0 ? (processed / total) * 100 : 0
+    };
+  }, [formData.files]);
+
+  // Clear all form data
   const clearForm = useCallback(() => {
     // Clean up all preview URLs
     formData.files.forEach(file => {
@@ -200,116 +176,103 @@ export const usePhotoFormData = () => {
     });
 
     setFormData({ files: [] });
+    console.log('🧹 Cleared form data');
   }, [formData.files]);
 
-  // Get data for upload processing
-  const getUploadData = useCallback(() => {
-    return {
-      files: formData.files.map(file => ({
-        id: file.id,
-        originalFile: file.originalFile,
-        fileName: file.fileName,
-        processedBlob: file.editData?.croppedBlob || file.originalFile,
-        metadata: {
-          title: file.metadata.title.trim() || file.fileName.replace(/\.[^/.]+$/, ''), // Default to filename without extension
-          description: file.metadata.description.trim(),
-          originalFileName: file.fileName,
-          fileSize: file.fileSize,
-          fileType: file.fileType,
-          wasEdited: file.editData?.isProcessed && !file.editData?.skipEditing,
-          aspectRatio: file.editData?.aspectRatio || 'original'
+  // Reset processing for all files (useful for re-editing)
+  const resetProcessing = useCallback(() => {
+    setFormData(prev => ({
+      ...prev,
+      files: prev.files.map(file => {
+        // Clean up cropped preview URL if it exists
+        if (file.editData?.croppedPreviewUrl) {
+          URL.revokeObjectURL(file.editData.croppedPreviewUrl);
+        }
+
+        return {
+          ...file,
+          editData: {
+            isProcessed: false,
+            skipEditing: false,
+            croppedBlob: null,
+            croppedPreviewUrl: null,
+            aspectRatio: 'original',
+            cropSettings: null
+          }
+        };
+      })
+    }));
+
+    console.log('🔄 Reset processing for all files');
+  }, []);
+
+  // Auto-process all files (skip cropping for all)
+  const autoProcessAllFiles = useCallback(() => {
+    setFormData(prev => ({
+      ...prev,
+      files: prev.files.map(file => ({
+        ...file,
+        editData: {
+          ...file.editData,
+          isProcessed: true,
+          skipEditing: true,
+          croppedBlob: null,
+          croppedPreviewUrl: null,
+          aspectRatio: 'original',
+          cropSettings: null
         }
       }))
-    };
-  }, [formData.files]);
+    }));
 
-  // Validation helpers
-  const isDataValid = useMemo(() => {
-    const files = formData.files || [];
+    console.log('⏭️ Auto-processed all files (skipped cropping)');
+  }, []);
 
-    // Must have at least one file
-    if (files.length === 0) return false;
+  // Validate form data
+  const validateFormData = useCallback(() => {
+    const errors = [];
 
-    // All files must have valid data
-    return files.every(file => {
-      // Must have original file
-      if (!file.originalFile) return false;
+    if (formData.files.length === 0) {
+      errors.push('No files selected');
+    }
 
-      // If editing is processed, must have valid result
-      if (file.editData?.isProcessed && !file.editData?.skipEditing) {
-        if (!file.editData?.croppedBlob) return false;
+    formData.files.forEach(file => {
+      if (!file.originalFile) {
+        errors.push(`${file.fileName}: Missing original file`);
       }
-
-      return true;
+      if (!file.id) {
+        errors.push(`${file.fileName}: Missing file ID`);
+      }
+      if (!file.previewUrl && !file.editData?.croppedPreviewUrl) {
+        errors.push(`${file.fileName}: Missing preview URL`);
+      }
     });
-  }, [formData.files]);
-
-  // Statistics
-  const getStats = useMemo(() => {
-    const files = formData.files || [];
 
     return {
-      totalFiles: files.length,
-      totalSize: files.reduce((sum, file) => sum + file.fileSize, 0),
-      processedFiles: files.filter(f => f.editData?.isProcessed).length,
-      filesWithMetadata: files.filter(f =>
-        f.metadata?.title ||
-        f.metadata?.description
-      ).length,
-      uploadedFiles: files.filter(f => f.uploadData?.isUploaded).length,
-      hasErrors: files.some(f => f.uploadData?.uploadError)
+      isValid: errors.length === 0,
+      errors
     };
-  }, [formData.files]);
-
-  // Get file by ID
-  const getFileById = useCallback((fileId) => {
-    return formData.files.find(f => f.id === fileId);
-  }, [formData.files]);
-
-  // Get files by status
-  const getFilesByStatus = useCallback((status) => {
-    switch (status) {
-      case 'unprocessed':
-        return formData.files.filter(f => !f.editData?.isProcessed);
-      case 'processed':
-        return formData.files.filter(f => f.editData?.isProcessed);
-      case 'uploaded':
-        return formData.files.filter(f => f.uploadData?.isUploaded);
-      case 'failed':
-        return formData.files.filter(f => f.uploadData?.uploadError);
-      default:
-        return formData.files;
-    }
-  }, [formData.files]);
+  }, [formData]);
 
   return {
-    // State
+    // Form data
     formData,
+    setFormData,
 
-    // File management
+    // File operations
     addFiles,
     removeFile,
-
-    // Edit operations
-    updateFileEditData, // RENAMED for consistency with wizard
-    markFileAsProcessed,
-    markAllFilesAsProcessed,
-
-    // Metadata operations
     updateFileMetadata,
-    batchUpdateMetadata,
+    updateFileEditData,
 
-    // Upload operations
-    updateFileUpload,
-
-    // Utility functions
-    clearForm, // RENAMED for consistency with wizard
-    getUploadData,
-    getFileById,
+    // File queries
     getFilesByStatus,
+    areAllFilesProcessed,
+    getProcessingStats,
 
-    // Validation and stats
-    isDataValid,
-    getStats
+    // Form operations
+    clearForm,
+    resetProcessing,
+    autoProcessAllFiles,
+    validateFormData
   };
 };

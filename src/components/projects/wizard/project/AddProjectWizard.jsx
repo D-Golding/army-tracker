@@ -1,268 +1,341 @@
-// components/projects/wizard/AddProjectWizard.jsx - Main project wizard orchestrator
-import React, { useState } from 'react';
+// components/projects/wizard/project/AddProjectWizard.jsx - Updated scroll behavior
+import React, { useState, useEffect, useRef } from 'react';
 import { useProjectWizard } from '../../../../hooks/useProjectWizard';
 import { useProjectFormData } from '../../../../hooks/useProjectFormData';
+import { usePhotoFormData } from '../../../../hooks/photoGallery/usePhotoFormData';
 import { validateProjectForm } from '../../../../utils/projectValidation';
 import ProjectWizardStepIndicator from './ProjectWizardStepIndicator';
 import ProjectWizardNavigation from './ProjectWizardNavigation';
 import ProjectDetailsForm from './ProjectDetailsForm';
 import ProjectPaintsForm from './ProjectPaintsForm';
-import ProjectPhotosForm from './ProjectPhotosForm';
 import ProjectReviewForm from './ProjectReviewForm';
+import {
+ ProjectPhotoSelectStep,
+ ProjectPhotoCropStep,
+ ProjectPhotoDetailsStep
+} from './photoUploader';
 
 const AddProjectWizard = ({
-  onSubmit,
-  onCancel,
-  isLoading = false
+ onSubmit,
+ onCancel,
+ isLoading = false
 }) => {
-  const [errors, setErrors] = useState({});
+ const [errors, setErrors] = useState({});
+ const [currentPhotoStep, setCurrentPhotoStep] = useState(0);
+ const stepContentRef = useRef(null);
 
-  const {
-    formData,
-    updateField,
-    updateManufacturer,
-    updateGame,
-    addPaints,
-    removePaint,
-    addPhotos,
-    removePhoto,
-    setCoverPhoto,
-    getProjectData,
-    isRequiredFieldsValid
-  } = useProjectFormData();
+ // Project form data
+ const {
+   formData,
+   updateField,
+   updateManufacturer,
+   updateGame,
+   addPaints,
+   removePaint,
+   getProjectData,
+   isRequiredFieldsValid
+ } = useProjectFormData();
 
-  const {
-    WIZARD_STEPS,
-    currentStep,
-    canGoNext,
-    canGoPrevious,
-    goNext,
-    goPrevious,
-    goToStep,
-    isStepCompleted,
-    isStepActive,
-    isStepAccessible,
-    isLastStep,
-    isFormReady
-  } = useProjectWizard(formData);
+ // Photo form data (separate from project data)
+ const {
+   formData: photoFormData,
+   addFiles,
+   removeFile,
+   updateFileMetadata,
+   updateFileEditData,
+   areAllFilesProcessed,
+   getProcessingStats
+ } = usePhotoFormData();
 
-  // Handle form submission
-  const handleSubmit = async () => {
-    // Final validation
-    const validation = validateProjectForm(formData);
-    if (!validation.isValid) {
-      setErrors(validation.errors);
-      // Go back to details step if there are validation errors
-      goToStep(0);
-      return;
-    }
+ // Main wizard steps
+ const {
+   WIZARD_STEPS,
+   currentStep,
+   canGoNext,
+   canGoPrevious,
+   goNext,
+   goPrevious,
+   goToStep,
+   isStepCompleted,
+   isStepActive,
+   isStepAccessible,
+   isLastStep,
+   isFormReady
+ } = useProjectWizard(formData);
 
-    setErrors({});
+ // Photo step configuration
+ const PHOTO_STEPS = [
+   { id: 'select', title: 'Select Photos', icon: 'ðŸ"·Â¹' },
+   { id: 'crop', title: 'Edit Photos', icon: 'ðŸ"·Â²' },
+   { id: 'details', title: 'Photo Details', icon: 'ðŸ"·Â³' }
+ ];
 
-    try {
-      const projectData = getProjectData();
+ // Scroll to step content when step changes (not to very top)
+ useEffect(() => {
+   if (stepContentRef.current) {
+     stepContentRef.current.scrollIntoView({
+       behavior: 'smooth',
+       block: 'start'
+     });
+   }
+ }, [currentStep, currentPhotoStep]);
 
-      // DEBUG: Log the project data being created
-      console.log('🐛 PROJECT DATA BEING CREATED:', projectData);
-      console.log('🐛 CREATED DATE VALUE:', projectData.created);
-      console.log('🐛 CREATED DATE TYPE:', typeof projectData.created);
-      console.log('🐛 UPDATED DATE VALUE:', projectData.updatedAt);
-      console.log('🐛 UPDATED DATE TYPE:', typeof projectData.updatedAt);
+ // Handle form submission
+ const handleSubmit = async () => {
+   // Final validation
+   const validation = validateProjectForm(formData);
+   if (!validation.isValid) {
+     setErrors(validation.errors);
+     goToStep(0);
+     return;
+   }
 
-      await onSubmit(projectData);
-    } catch (error) {
-      setErrors({ submit: 'Failed to create project. Please try again.' });
-      console.error('Error creating project:', error);
-    }
-  };
+   setErrors({});
 
-  // Handle navigation
-  const handleNext = () => {
-    // Clear errors when moving forward
-    setErrors({});
-    goNext();
-  };
+   try {
+     const projectData = getProjectData();
 
-  const handlePrevious = () => {
-    // Clear errors when moving backward
-    setErrors({});
-    goPrevious();
-  };
+     // Add photo data to project
+     const photoUrls = photoFormData.files.map(file => {
+       const finalUrl = file.editData?.croppedPreviewUrl || file.previewUrl;
+       return {
+         url: finalUrl,
+         title: file.metadata?.title || '',
+         description: file.metadata?.description || '',
+         originalFileName: file.fileName,
+         wasEdited: file.editData?.croppedBlob && !file.editData?.skipEditing,
+         aspectRatio: file.editData?.aspectRatio || 'original'
+       };
+     });
 
-  const handleStepClick = (stepIndex) => {
-    // Clear errors when jumping to step
-    setErrors({});
-    goToStep(stepIndex);
-  };
+     projectData.uploadedPhotos = photoUrls;
+     projectData.photoFormData = photoFormData;
 
-  // Handle field changes with error clearing
-  const handleFieldChange = (field, value) => {
-    updateField(field, value);
+     console.log('ðŸ›  PROJECT DATA BEING CREATED:', projectData);
+     await onSubmit(projectData);
+   } catch (error) {
+     setErrors({ submit: 'Failed to create project. Please try again.' });
+     console.error('Error creating project:', error);
+   }
+ };
 
-    // Clear specific field errors when user starts typing
-    if (errors[field]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-    }
+ // Handle navigation
+ const handleNext = () => {
+   setErrors({});
 
-    // Clear submit errors
-    if (errors.submit) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors.submit;
-        return newErrors;
-      });
-    }
-  };
+   // Special handling for photo steps
+   if (currentStep === 2) { // Photos step
+     if (currentPhotoStep < PHOTO_STEPS.length - 1) {
+       // Move to next photo substep
+       if (currentPhotoStep === 1) {
+         // Check if all photos are processed before leaving crop step
+         if (!areAllFilesProcessed()) {
+           setErrors({ photos: 'Please process all photos before continuing.' });
+           return;
+         }
+       }
+       setCurrentPhotoStep(currentPhotoStep + 1);
+       return;
+     }
+   }
 
-  // Handle manufacturer changes with error clearing
-  const handleManufacturerChange = (manufacturer) => {
-    updateManufacturer(manufacturer);
+   // Move to next main step
+   setCurrentPhotoStep(0);
+   goNext();
+ };
 
-    // Clear manufacturer and game errors
-    setErrors(prev => {
-      const newErrors = { ...prev };
-      delete newErrors.manufacturer;
-      delete newErrors.game;
-      return newErrors;
-    });
-  };
+ const handlePrevious = () => {
+   setErrors({});
 
-  // Handle game changes with error clearing
-  const handleGameChange = (game) => {
-    updateGame(game);
+   // Special handling for photo steps
+   if (currentStep === 2 && currentPhotoStep > 0) {
+     setCurrentPhotoStep(currentPhotoStep - 1);
+     return;
+   }
 
-    // Clear game errors
-    if (errors.game) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors.game;
-        return newErrors;
-      });
-    }
-  };
+   setCurrentPhotoStep(0);
+   goPrevious();
+ };
 
-  // Handle paint operations
-  const handlePaintsAdded = (paints) => {
-    addPaints(paints);
-  };
+ const handleStepClick = (stepIndex) => {
+   setErrors({});
+   setCurrentPhotoStep(0);
+   goToStep(stepIndex);
+ };
 
-  const handlePaintRemoved = (paintId) => {
-    removePaint(paintId);
-  };
+ // Handle field changes with error clearing
+ const handleFieldChange = (field, value) => {
+   updateField(field, value);
+   if (errors[field]) {
+     setErrors(prev => {
+       const newErrors = { ...prev };
+       delete newErrors[field];
+       return newErrors;
+     });
+   }
+ };
 
-  // Handle photo operations
-  const handlePhotosAdded = (photoUrls) => {
-    addPhotos(photoUrls);
-  };
+ // Photo handlers
+ const handlePhotosSelected = (files) => {
+   addFiles(files);
+ };
 
-  const handlePhotoRemoved = (photoUrl) => {
-    removePhoto(photoUrl);
-  };
+ const handlePhotoRemoved = (fileId) => {
+   removeFile(fileId);
+ };
 
-  const handleCoverPhotoSet = (photoUrl) => {
-    setCoverPhoto(photoUrl);
-  };
+ const handlePhotoEdited = (fileId, editData) => {
+   updateFileEditData(fileId, editData);
+ };
 
-  // Handle edit from review step
-  const handleEditStep = (stepIndex) => {
-    goToStep(stepIndex);
-  };
+ const handlePhotoMetadataUpdated = (fileId, metadata) => {
+   updateFileMetadata(fileId, metadata);
+ };
 
-  // Render current step content
-  const renderStepContent = () => {
-    const stepId = WIZARD_STEPS[currentStep].id;
+ const handleAllPhotosProcessed = () => {
+   // Auto-advance to details step when all photos are processed
+   setTimeout(() => setCurrentPhotoStep(2), 500);
+ };
 
-    switch (stepId) {
-      case 'details':
-        return (
-          <ProjectDetailsForm
-            formData={formData}
-            onFieldChange={handleFieldChange}
-            onManufacturerChange={handleManufacturerChange}
-            onGameChange={handleGameChange}
-            errors={errors}
-            isLoading={isLoading}
-          />
-        );
+ // Render current step content
+ const renderStepContent = () => {
+   const stepId = WIZARD_STEPS[currentStep].id;
 
-      case 'paints':
-        return (
-          <ProjectPaintsForm
-            formData={formData}
-            onPaintsAdded={handlePaintsAdded}
-            onPaintRemoved={handlePaintRemoved}
-            isLoading={isLoading}
-          />
-        );
+   switch (stepId) {
+     case 'details':
+       return (
+         <ProjectDetailsForm
+           formData={formData}
+           onFieldChange={handleFieldChange}
+           onManufacturerChange={updateManufacturer}
+           onGameChange={updateGame}
+           errors={errors}
+           isLoading={isLoading}
+         />
+       );
 
-      case 'photos':
-        return (
-          <ProjectPhotosForm
-            formData={formData}
-            onPhotosAdded={handlePhotosAdded}
-            onPhotoRemoved={handlePhotoRemoved}
-            onCoverPhotoSet={handleCoverPhotoSet}
-            isLoading={isLoading}
-          />
-        );
+     case 'paints':
+       return (
+         <ProjectPaintsForm
+           formData={formData}
+           onPaintsAdded={addPaints}
+           onPaintRemoved={removePaint}
+           isLoading={isLoading}
+         />
+       );
 
-      case 'review':
-        return (
-          <ProjectReviewForm
-            formData={formData}
-            onEditStep={handleEditStep}
-          />
-        );
+     case 'photos':
+       return renderPhotoStep();
 
-      default:
-        return null;
-    }
-  };
+     case 'review':
+       return (
+         <ProjectReviewForm
+           formData={formData}
+           photoFormData={photoFormData}
+           onEditStep={handleStepClick}
+         />
+       );
 
-  return (
-    <div className="space-y-6">
-      {/* Progress Steps */}
-      <ProjectWizardStepIndicator
-        steps={WIZARD_STEPS}
-        currentStep={currentStep}
-        isStepCompleted={isStepCompleted}
-        isStepActive={isStepActive}
-        isStepAccessible={isStepAccessible}
-        onStepClick={handleStepClick}
-      />
+     default:
+       return null;
+   }
+ };
 
-      {/* Step Content */}
-      <div className="min-h-[500px]">
-        {renderStepContent()}
-      </div>
+ // Render photo substeps
+ const renderPhotoStep = () => {
+   switch (currentPhotoStep) {
+     case 0:
+       return (
+         <ProjectPhotoSelectStep
+           formData={photoFormData}
+           onFilesSelected={handlePhotosSelected}
+           onFileRemoved={handlePhotoRemoved}
+           maxPhotos={50}
+           isLoading={isLoading}
+           errors={errors}
+         />
+       );
 
-      {/* Submit Error Display */}
-      {errors.submit && (
-        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl p-4">
-          <div className="text-red-800 dark:text-red-300 text-sm font-medium">
-            {errors.submit}
-          </div>
-        </div>
-      )}
+     case 1:
+       return (
+         <ProjectPhotoCropStep
+           formData={photoFormData}
+           onFileEdited={handlePhotoEdited}
+           onAllPhotosProcessed={handleAllPhotosProcessed}
+         />
+       );
 
-      {/* Navigation */}
-      <ProjectWizardNavigation
-        canGoPrevious={canGoPrevious()}
-        canGoNext={canGoNext()}
-        isLastStep={isLastStep()}
-        isLoading={isLoading}
-        onPrevious={handlePrevious}
-        onNext={handleNext}
-        onCancel={onCancel}
-        onSubmit={handleSubmit}
-        isFormReady={isFormReady()}
-      />
-    </div>
-  );
+     case 2:
+       return (
+         <ProjectPhotoDetailsStep
+           formData={photoFormData}
+           onMetadataUpdated={handlePhotoMetadataUpdated}
+           isLoading={isLoading}
+           errors={errors}
+         />
+       );
+
+     default:
+       return null;
+   }
+ };
+
+ // Check if next button should be disabled
+ const isNextDisabled = () => {
+   if (currentStep === 2) { // Photos step
+     if (currentPhotoStep === 1) { // Crop step
+       return !areAllFilesProcessed();
+     }
+   }
+   return false;
+ };
+
+ return (
+   <div className="space-y-6">
+     {/* Progress Steps */}
+     <ProjectWizardStepIndicator
+       steps={WIZARD_STEPS}
+       currentStep={currentStep}
+       photoSteps={PHOTO_STEPS}
+       currentPhotoStep={currentPhotoStep}
+       isStepCompleted={isStepCompleted}
+       isStepActive={isStepActive}
+       isStepAccessible={isStepAccessible}
+       onStepClick={handleStepClick}
+     />
+
+     {/* Step Content - Add ref here */}
+     <div ref={stepContentRef} className="min-h-[500px]">
+       {renderStepContent()}
+     </div>
+
+     {/* Submit Error Display */}
+     {errors.submit && (
+       <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl p-4">
+         <div className="text-red-800 dark:text-red-300 text-sm font-medium">
+           {errors.submit}
+         </div>
+       </div>
+     )}
+
+     {/* Navigation */}
+     <ProjectWizardNavigation
+       canGoPrevious={canGoPrevious() || (currentStep === 2 && currentPhotoStep > 0)}
+       canGoNext={canGoNext() || (currentStep === 2 && currentPhotoStep < PHOTO_STEPS.length - 1)}
+       isLastStep={isLastStep() && (currentStep !== 2 || currentPhotoStep === PHOTO_STEPS.length - 1)}
+       isLoading={isLoading}
+       onPrevious={handlePrevious}
+       onNext={handleNext}
+       onCancel={onCancel}
+       onSubmit={handleSubmit}
+       isFormReady={isFormReady() && !isNextDisabled()}
+       isNextDisabled={isNextDisabled()}
+       currentStep={currentStep}
+       currentPhotoStep={currentPhotoStep}
+       photoSteps={PHOTO_STEPS}
+     />
+   </div>
+ );
 };
 
 export default AddProjectWizard;

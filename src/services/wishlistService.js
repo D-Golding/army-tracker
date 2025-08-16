@@ -1,4 +1,4 @@
-// services/wishlistService.js - Updated for user-specific data
+// services/wishlistService.js - Updated for user-specific data with shared utilities
 import {
   collection,
   addDoc,
@@ -9,23 +9,8 @@ import {
   where
 } from 'firebase/firestore';
 import { db } from '../firebase.js';
-import { auth } from '../firebase.js';
+import { getCurrentUserId, getUserWishlistCollection } from './shared/userHelpers.js';
 import { newPaint } from './paints/index.js';
-
-// Helper function to get current user ID
-const getCurrentUserId = () => {
-  const user = auth.currentUser;
-  if (!user) {
-    throw new Error('User not authenticated');
-  }
-  return user.uid;
-};
-
-// Helper function to get user's wishlist collection reference
-const getUserWishlistCollection = () => {
-  const userId = getCurrentUserId();
-  return collection(db, 'users', userId, 'wishlist');
-};
 
 // =====================================
 // WISHLIST MANAGEMENT FUNCTIONS

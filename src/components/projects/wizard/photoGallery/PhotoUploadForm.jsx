@@ -1,6 +1,6 @@
-// components/shared/wizard/photoGallery/PhotoUploadForm.jsx - Remove data usage displays
+// components/shared/wizard/photoGallery/PhotoUploadForm.jsx - Updated for new crop step flow
 import React, { useState, useEffect } from 'react';
-import { Upload, Check, X, AlertCircle } from 'lucide-react';
+import { Upload, Check, X, AlertCircle, Scissors, Image } from 'lucide-react';
 import { processAndUploadPhoto } from '../../../../services/photoService';
 import { useAuth } from '../../../../contexts/AuthContext';
 
@@ -27,7 +27,9 @@ const PhotoUploadForm = ({
       fileName: file.fileName,
       status: 'waiting', // waiting, processing, uploading, success, error
       progress: 0,
-      error: null
+      error: null,
+      wasProcessed: file.editData?.isProcessed || false,
+      wasCropped: file.editData?.croppedBlob && !file.editData?.skipEditing
     }));
     setUploadProgress(progressArray);
   }, [files]);
@@ -51,7 +53,27 @@ const PhotoUploadForm = ({
       // Process files one by one
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const fileToUpload = file.editData?.croppedBlob || file.originalFile;
+
+        // Determine which file to upload (cropped or original)
+        let fileToUpload;
+        let uploadMetadata = {
+          title: file.metadata?.title || file.fileName.replace(/\.[^/.]+$/, ''),
+          description: file.metadata?.description || '',
+          originalFileName: file.fileName,
+          wasEdited: false,
+          aspectRatio: 'original'
+        };
+
+        if (file.editData?.isProcessed && file.editData?.croppedBlob && !file.editData?.skipEditing) {
+          // Use cropped version
+          fileToUpload = file.editData.croppedBlob;
+          uploadMetadata.wasEdited = true;
+          uploadMetadata.aspectRatio = file.editData.aspectRatio || 'custom';
+        } else {
+          // Use original file
+          fileToUpload = file.originalFile;
+          uploadMetadata.wasEdited = false;
+        }
 
         // Update status: processing
         setUploadProgress(prev => prev.map(item =>
@@ -64,14 +86,14 @@ const PhotoUploadForm = ({
         ));
 
         try {
-          // DEBUG LOG - About to upload
           console.log('📤 About to upload:', {
             fileName: file.fileName,
             fileToUpload: fileToUpload,
             userId: currentUser.uid,
             projectId,
             photoType,
-            assignmentId
+            assignmentId,
+            wasEdited: uploadMetadata.wasEdited
           });
 
           // Upload the file
@@ -83,7 +105,6 @@ const PhotoUploadForm = ({
             assignmentId
           );
 
-          // DEBUG LOG - Upload result
           console.log('📊 Upload result:', result);
 
           if (result.success) {
@@ -92,17 +113,11 @@ const PhotoUploadForm = ({
               item.id === file.id ? { ...item, status: 'success', progress: 100 } : item
             ));
 
-            // Add to results with metadata
+            // Add to results with enhanced metadata
             results.push({
               downloadURL: result.downloadURL,
               storagePath: result.storagePath,
-              metadata: {
-                title: file.metadata?.title || file.fileName.replace(/\.[^/.]+$/, ''),
-                description: file.metadata?.description || '',
-                originalFileName: file.fileName,
-                wasEdited: file.editData?.croppedBlob && !file.editData?.skipEditing,
-                aspectRatio: file.editData?.aspectRatio || 'original'
-              }
+              metadata: uploadMetadata
             });
           } else {
             // Update status: error
@@ -116,7 +131,6 @@ const PhotoUploadForm = ({
             ));
           }
         } catch (error) {
-          // DEBUG LOG - Upload error
           console.error('❌ Upload error:', error);
 
           // Update status: error
@@ -133,7 +147,6 @@ const PhotoUploadForm = ({
 
       setUploadResults(results);
 
-      // DEBUG LOG - All uploads complete
       console.log('✅ All uploads complete. Results:', results);
 
       // Auto-complete if all successful
@@ -155,8 +168,48 @@ const PhotoUploadForm = ({
   const completedCount = successCount + errorCount;
   const overallProgress = files.length > 0 ? (completedCount / files.length) * 100 : 0;
 
+  // Get processing statistics
+  const processingStats = {
+    total: files.length,
+    cropped: files.filter(f => f.editData?.croppedBlob && !f.editData?.skipEditing).length,
+    original: files.filter(f => f.editData?.skipEditing || !f.editData?.isProcessed).length
+  };
+
   return (
     <div className="space-y-6">
+      {/* Processing Summary */}
+      <div className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4">
+        <h4 className="font-medium text-indigo-800 dark:text-indigo-300 mb-3">Upload Summary</h4>
+        <div className="grid grid-cols-3 gap-4 text-center text-sm">
+          <div>
+            <div className="text-lg font-bold text-indigo-900 dark:text-indigo-200">
+              {processingStats.total}
+            </div>
+            <div className="text-xs text-indigo-700 dark:text-indigo-400">
+              Total Photos
+            </div>
+          </div>
+          <div>
+            <div className="text-lg font-bold text-indigo-900 dark:text-indigo-200 flex items-center justify-center gap-1">
+              <Scissors size={14} />
+              {processingStats.cropped}
+            </div>
+            <div className="text-xs text-indigo-700 dark:text-indigo-400">
+              Cropped
+            </div>
+          </div>
+          <div>
+            <div className="text-lg font-bold text-indigo-900 dark:text-indigo-200 flex items-center justify-center gap-1">
+              <Image size={14} />
+              {processingStats.original}
+            </div>
+            <div className="text-xs text-indigo-700 dark:text-indigo-400">
+              Original
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Overall Progress */}
       <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4">
         <div className="flex justify-between items-center mb-2">
@@ -240,13 +293,27 @@ const PhotoUploadForm = ({
   );
 };
 
-// Individual upload progress item - removed file size display
+// Individual upload progress item
 const UploadProgressItem = ({ item }) => (
   <div className="p-3 border border-gray-200 dark:border-gray-700 rounded-xl">
     <div className="flex justify-between items-center mb-2">
-      <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
-        {item.fileName}
-      </span>
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
+          {item.fileName}
+        </span>
+        {item.wasCropped && (
+          <div className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+            <Scissors size={10} />
+            Cropped
+          </div>
+        )}
+        {item.wasProcessed && !item.wasCropped && (
+          <div className="bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+            <Image size={10} />
+            Original
+          </div>
+        )}
+      </div>
       <div className="flex items-center gap-1">
         {item.status === 'success' && (
           <Check size={16} className="text-emerald-600 dark:text-emerald-400" />

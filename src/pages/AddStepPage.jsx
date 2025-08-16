@@ -1,5 +1,5 @@
 // pages/AddStepPage.jsx - Page wrapper for adding steps
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ListOrdered } from 'lucide-react';
 import { useProject, useProjectOperations } from '../hooks/useProjects';
@@ -14,6 +14,11 @@ const AddStepPage = () => {
   const { addStep, isLoading } = useProjectOperations();
   const { triggerForAction } = useGamificationOperations();
 
+  // Scroll to top when component loads
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Handle form submission
   const handleFormSubmit = async (stepData) => {
     try {
@@ -22,7 +27,7 @@ const AddStepPage = () => {
       // Use formatStepData helper to create step with stepPhoto preserved
       const newStep = formatStepData(stepData, projectId, stepNumber);
 
-      console.log('🔄 Creating step with data:', newStep);
+      console.log('📄 Creating step with data:', newStep);
       console.log('📸 Step photo in final data:', newStep.stepPhoto);
 
       await addStep({ projectId, step: newStep });
@@ -51,6 +56,11 @@ const AddStepPage = () => {
   // Handle cancel
   const handleCancel = () => {
     navigate(`/app/projects/${projectId}`);
+  };
+
+  // Handle next button - scroll to top when moving between form steps
+  const handleNextStep = () => {
+    window.scrollTo(0, 0);
   };
 
   // Loading state for project
@@ -107,6 +117,7 @@ const AddStepPage = () => {
         <AddStepForm
           onSubmit={handleFormSubmit}
           onCancel={handleCancel}
+          onNextStep={handleNextStep}
           isLoading={isLoading}
           stepNumber={stepNumber}
           projectData={project}

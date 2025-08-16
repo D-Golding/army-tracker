@@ -8,14 +8,15 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 import { db } from '../../../firebase.js';
-import { getCurrentUserId, getUserProjectsCollection } from '../utils/projectHelpers.js';
+import { getCurrentUserId, getUserProjectsCollection } from '../../shared/userHelpers.js';
+import { DEFAULTS } from '../../shared/constants.js';
 
 // UPDATED createProject to accept new data structure with photo metadata
 export const createProject = async (projectData) => {
   const projectsCollection = getUserProjectsCollection();
 
-  // Default cover image URL (you can change this to your preferred image)
-  const defaultCoverImage = '/default-project-cover.jpg'; // Update this path
+  // Default cover image URL from shared constants
+  const defaultCoverImage = DEFAULTS.PROJECT_COVER_IMAGE;
 
   // Handle photos - support both old URL format and new photo object format
   let photoObjects = [];
@@ -71,8 +72,8 @@ export const createProject = async (projectData) => {
     manufacturer: projectData.manufacturer || '',
     game: projectData.game || '',
     description: projectData.description || '',
-    status: projectData.status || 'upcoming',
-    difficulty: projectData.difficulty || 'beginner',
+    status: projectData.status || DEFAULTS.PROJECT_STATUS,
+    difficulty: projectData.difficulty || DEFAULTS.PROJECT_DIFFICULTY,
     created: serverTimestamp(),
     updatedAt: serverTimestamp(),
 
@@ -111,8 +112,8 @@ export const createProjectLegacy = async (
   requiredPaints,
   description = "",
   photoURLs = [],
-  status = "upcoming",
-  difficulty = "beginner"
+  status = DEFAULTS.PROJECT_STATUS,
+  difficulty = DEFAULTS.PROJECT_DIFFICULTY
 ) => {
   const projectsCollection = getUserProjectsCollection();
 
@@ -125,7 +126,7 @@ export const createProjectLegacy = async (
     uploadedAt: new Date().toISOString(),
     wasEdited: false
   })) : [{
-    url: '/default-project-cover.jpg',
+    url: DEFAULTS.PROJECT_COVER_IMAGE,
     title: 'Default Cover',
     description: '',
     originalFileName: 'default-project-cover.jpg',
@@ -189,7 +190,7 @@ export const getAllProjects = async () => {
       id: doc.id,
       ...data,
       photos: photos || [],
-      difficulty: data.difficulty || 'beginner'
+      difficulty: data.difficulty || DEFAULTS.PROJECT_DIFFICULTY
     });
   });
   return results;

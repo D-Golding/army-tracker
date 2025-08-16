@@ -1,12 +1,14 @@
-// components/layouts/MainLayout.jsx - Updated with Banner Support
+// components/layouts/MainLayout.jsx - Updated with GlobalFooter
 import React, { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Moon, Sun, Palette, Folder, Users, Target } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUsageStats } from '../../hooks/useUsageStats';
-import { getTierLimits } from '../../config/subscription';import UserMenu from '../UserMenu';
+import { getTierLimits } from '../../config/subscription';
+import UserMenu from '../UserMenu';
 import BannerUpload from '../dashboard/Profile/BannerUpload';
 import BannerBackground from '../shared/BannerBackground';
+import GlobalFooter from '../GlobalFooter';
 
 const MainLayout = () => {
   const [darkMode, setDarkMode] = useState(false);
@@ -47,8 +49,8 @@ const MainLayout = () => {
 
   return (
     <div className={darkMode ? 'dark' : ''}>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
-        <div className="max-w-md mx-auto bg-gray-50 dark:bg-gray-900 min-h-screen relative">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors flex flex-col">
+        <div className="max-w-md mx-auto bg-gray-50 dark:bg-gray-900 min-h-screen flex flex-col relative">
 
           {/* Header */}
           <div className="relative text-white p-6 pt-12 overflow-visible">
@@ -178,9 +180,12 @@ const MainLayout = () => {
           </div>
 
           {/* Main Content */}
-          <main className="p-4 pt-6">
+          <main className="flex-1 p-4 pt-6">
             <Outlet />
           </main>
+
+          {/* Global Footer */}
+          <GlobalFooter />
         </div>
       </div>
     </div>
