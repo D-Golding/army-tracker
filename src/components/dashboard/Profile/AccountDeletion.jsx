@@ -1,9 +1,8 @@
-// components/dashboard/Profile/AccountDeletion.jsx - Fixed without Email Verification
+// components/dashboard/Profile/AccountDeletion.jsx - Simplified without 30-day option
 import React, { useState } from 'react';
-import { AlertTriangle, Trash2, Clock, Shield, Mail, Calendar } from 'lucide-react';
+import { AlertTriangle, Trash2, Calendar, Shield, Mail } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import DeletionConfirmation from './DeletionConfirmation';
-import DeletionScheduling from './DeletionScheduling';
 
 const AccountDeletion = () => {
   const { userProfile } = useAuth();
@@ -22,12 +21,7 @@ const AccountDeletion = () => {
 
   const handleSelectOption = (option) => {
     setSelectedOption(option);
-
-    if (option === 'immediate-permanent' || option === 'immediate-30day') {
-      setDeletionStep('immediate');
-    } else if (option === 'scheduled') {
-      setDeletionStep('scheduled');
-    }
+    setDeletionStep('confirmation');
   };
 
   const handleBackToOverview = () => {
@@ -35,21 +29,12 @@ const AccountDeletion = () => {
     setSelectedOption(null);
   };
 
-  if (deletionStep === 'immediate') {
+  if (deletionStep === 'confirmation') {
     return (
       <DeletionConfirmation
         type={selectedOption}
         onBack={handleBackToOverview}
         hasActiveSubscription={hasActiveSubscription}
-        subscriptionExpiryDate={subscriptionExpiryDate}
-      />
-    );
-  }
-
-  if (deletionStep === 'scheduled') {
-    return (
-      <DeletionScheduling
-        onBack={handleBackToOverview}
         subscriptionExpiryDate={subscriptionExpiryDate}
       />
     );
@@ -76,6 +61,7 @@ const AccountDeletion = () => {
                   <li>All progress and achievement data</li>
                   <li>All account preferences and settings</li>
                   <li>Access to any remaining subscription benefits</li>
+                  <li>Your login credentials and account access</li>
                 </ul>
                 <p className="font-semibold text-sm">
                   Choose your deletion option carefully
@@ -147,6 +133,7 @@ const AccountDeletion = () => {
                 <div className="space-y-2">
                   <div className="text-sm text-red-700 dark:text-red-300 space-y-1">
                     <div>• Account and data deleted immediately</div>
+                    <div>• Login credentials permanently removed</div>
                     <div>• Cannot be recovered under any circumstances</div>
                     <div>• No grace period or backup</div>
                   </div>
@@ -162,45 +149,7 @@ const AccountDeletion = () => {
             </div>
           </div>
 
-          {/* Option 2: Delete with 30-Day Grace Period */}
-          <div
-            className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
-              selectedOption === 'immediate-30day'
-                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                : 'border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-500'
-            }`}
-            onClick={() => setSelectedOption('immediate-30day')}
-          >
-            <div className="flex items-start gap-3">
-              <Clock className="w-6 h-6 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-1" />
-              <div className="flex-1">
-                <h5 className="font-semibold text-gray-900 dark:text-white mb-2">
-                  Delete with 30-Day Grace Period (Recommended)
-                </h5>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                  Account access disabled immediately, but data kept for 30 days in case you change your mind.
-                </p>
-
-                <div className="space-y-2">
-                  <div className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
-                    <div>• Account access disabled immediately</div>
-                    <div>• Data kept safely for 30 days</div>
-                    <div>• Can contact support to recover account within 30 days</div>
-                    <div>• Data permanently deleted after 30 days if no recovery</div>
-                  </div>
-
-                  {hasActiveSubscription && (
-                    <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-2 rounded-lg">
-                      <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                      <span><strong>Warning:</strong> Your subscription will be cancelled immediately with no refund for unused time</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Option 3: Schedule Deletion at Subscription End */}
+          {/* Option 2: Schedule Deletion at Subscription End */}
           {hasActiveSubscription && (
             <div
               className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
@@ -225,7 +174,8 @@ const AccountDeletion = () => {
                       <div>• Keep full access until subscription expires</div>
                       <div>• Use all remaining subscription benefits</div>
                       <div>• Can cancel deletion request anytime before expiry</div>
-                      <div>• Automatic deletion when subscription ends</div>
+                      <div>• Automatic complete deletion when subscription ends</div>
+                      <div>• Login credentials will be permanently removed</div>
                     </div>
 
                     <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 p-2 rounded-lg">
@@ -245,16 +195,12 @@ const AccountDeletion = () => {
             <button
               onClick={() => handleSelectOption(selectedOption)}
               className={`btn-md flex items-center gap-2 ${
-                selectedOption === 'immediate-permanent' ? 'btn-danger' :
-                selectedOption === 'immediate-30day' ? 'btn-primary' :
-                'btn-secondary'
+                selectedOption === 'immediate-permanent' ? 'btn-danger' : 'btn-secondary'
               }`}
             >
               <Mail className="w-5 h-5" />
               Continue with {
-                selectedOption === 'immediate-permanent' ? 'Permanent Deletion' :
-                selectedOption === 'immediate-30day' ? '30-Day Grace Period' :
-                'Scheduled Deletion'
+                selectedOption === 'immediate-permanent' ? 'Permanent Deletion' : 'Scheduled Deletion'
               }
             </button>
 
@@ -315,10 +261,10 @@ const AccountDeletion = () => {
           <strong>Legal Notice:</strong> Account deletion terms:
         </p>
         <ul className="space-y-1 ml-4">
-          <li>• Immediate deletion options forfeit any unused subscription time without refund</li>
+          <li>• Immediate deletion removes all data and login access permanently with no refund</li>
           <li>• Scheduled deletion allows full use of remaining subscription time</li>
-          <li>• 30-day grace period enables account recovery through customer support</li>
-          <li>• Permanent deletion cannot be recovered under any circumstances</li>
+          <li>• Both deletion types permanently remove login credentials and cannot be recovered</li>
+          <li>• Scheduled deletion can be cancelled anytime before the scheduled date</li>
           <li>• All deletion processes comply with GDPR "Right to be Forgotten" regulations</li>
         </ul>
       </div>

@@ -1,9 +1,11 @@
-// components/projects/wizard/project/AddProjectWizard.jsx - Updated scroll behavior
+// components/projects/wizard/project/AddProjectWizard.jsx - Fixed file upload logic
 import React, { useState, useEffect, useRef } from 'react';
 import { useProjectWizard } from '../../../../hooks/useProjectWizard';
 import { useProjectFormData } from '../../../../hooks/useProjectFormData';
 import { usePhotoFormData } from '../../../../hooks/photoGallery/usePhotoFormData';
 import { validateProjectForm } from '../../../../utils/projectValidation';
+import { processAndUploadPhotos } from '../../../../services/photoService'; // ADD THIS IMPORT
+import { auth } from '../../../../firebase'; // ADD THIS IMPORT
 import ProjectWizardStepIndicator from './ProjectWizardStepIndicator';
 import ProjectWizardNavigation from './ProjectWizardNavigation';
 import ProjectDetailsForm from './ProjectDetailsForm';
@@ -22,6 +24,7 @@ const AddProjectWizard = ({
 }) => {
  const [errors, setErrors] = useState({});
  const [currentPhotoStep, setCurrentPhotoStep] = useState(0);
+ const [isUploading, setIsUploading] = useState(false); // ADD THIS STATE
  const stepContentRef = useRef(null);
 
  // Project form data
@@ -65,9 +68,9 @@ const AddProjectWizard = ({
 
  // Photo step configuration
  const PHOTO_STEPS = [
-   { id: 'select', title: 'Select Photos', icon: 'ðŸ"·Â¹' },
-   { id: 'crop', title: 'Edit Photos', icon: 'ðŸ"·Â²' },
-   { id: 'details', title: 'Photo Details', icon: 'ðŸ"·Â³' }
+   { id: 'select', title: 'Select Photos', icon: '📷¹' },
+   { id: 'crop', title: 'Edit Photos', icon: '📷²' },
+   { id: 'details', title: 'Photo Details', icon: '📷³' }
  ];
 
  // Scroll to step content when step changes (not to very top)
@@ -80,7 +83,7 @@ const AddProjectWizard = ({
    }
  }, [currentStep, currentPhotoStep]);
 
- // Handle form submission
+ // FIXED: Handle form submission with actual file uploads
  const handleSubmit = async () => {
    // Final validation
    const validation = validateProjectForm(formData);
@@ -91,31 +94,95 @@ const AddProjectWizard = ({
    }
 
    setErrors({});
+   setIsUploading(true);
 
    try {
      const projectData = getProjectData();
 
-     // Add photo data to project
-     const photoUrls = photoFormData.files.map(file => {
-       const finalUrl = file.editData?.croppedPreviewUrl || file.previewUrl;
-       return {
-         url: finalUrl,
-         title: file.metadata?.title || '',
-         description: file.metadata?.description || '',
-         originalFileName: file.fileName,
-         wasEdited: file.editData?.croppedBlob && !file.editData?.skipEditing,
-         aspectRatio: file.editData?.aspectRatio || 'original'
-       };
+     // STEP 1: Upload photos to Firebase Storage if any exist
+     let uploadedPhotos = [];
+
+     if (photoFormData.files && photoFormData.files.length > 0) {
+       console.log('🔄 Starting photo uploads...');
+
+       // Get current user info
+       const userId = auth.currentUser?.uid;
+       if (!userId) {
+         throw new Error('User not authenticated');
+       }
+
+       // Generate a temporary project ID for photo organization
+       const tempProjectId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+       // Process each file for upload
+       const filesToUpload = photoFormData.files.map(file => {
+         // Use cropped blob if available, otherwise original file
+         if (file.editData?.croppedBlob && !file.editData?.skipEditing) {
+           return file.editData.croppedBlob;
+         }
+         return file.originalFile;
+       });
+
+       // Upload all files to Firebase Storage
+       const uploadResults = await processAndUploadPhotos(
+         filesToUpload,
+         userId,
+         tempProjectId,
+         'project'
+       );
+
+       // Check for upload failures
+       const failedUploads = uploadResults.filter(result => !result.success);
+       if (failedUploads.length > 0) {
+         const errorMessage = failedUploads.map(result => result.error).join(', ');
+         throw new Error(`Photo upload failed: ${errorMessage}`);
+       }
+
+       // STEP 2: Create photo objects with Firebase Storage URLs and metadata
+       uploadedPhotos = uploadResults.map((uploadResult, index) => {
+         const originalFile = photoFormData.files[index];
+
+         return {
+           url: uploadResult.downloadURL, // ✅ Firebase Storage URL (not blob URL!)
+           title: originalFile.metadata?.title || '',
+           description: originalFile.metadata?.description || '',
+           originalFileName: originalFile.fileName,
+           uploadedAt: new Date().toISOString(),
+           wasEdited: originalFile.editData?.croppedBlob && !originalFile.editData?.skipEditing,
+           aspectRatio: originalFile.editData?.aspectRatio || 'original',
+           // Additional metadata from upload
+           fileSize: uploadResult.metadata?.size,
+           contentType: uploadResult.metadata?.contentType
+         };
+       });
+
+       console.log('✅ Photos uploaded successfully:', uploadedPhotos.length);
+     }
+
+     // STEP 3: Add uploaded photos to project data
+     projectData.uploadedPhotos = uploadedPhotos;
+
+     // Set cover photo to first uploaded photo if available
+     if (uploadedPhotos.length > 0) {
+       projectData.coverPhotoURL = uploadedPhotos[0].url;
+     }
+
+     console.log('🛠 PROJECT DATA BEING CREATED:', {
+       ...projectData,
+       photoCount: uploadedPhotos.length,
+       hasPhotos: uploadedPhotos.length > 0
      });
 
-     projectData.uploadedPhotos = photoUrls;
-     projectData.photoFormData = photoFormData;
-
-     console.log('ðŸ›  PROJECT DATA BEING CREATED:', projectData);
+     // STEP 4: Create the project
      await onSubmit(projectData);
+
    } catch (error) {
-     setErrors({ submit: 'Failed to create project. Please try again.' });
      console.error('Error creating project:', error);
+     setErrors({
+       submit: error.message || 'Failed to create project. Please try again.'
+     });
+   } finally {
+     setIsUploading(false);
    }
  };
 
@@ -210,7 +277,7 @@ const AddProjectWizard = ({
            onManufacturerChange={updateManufacturer}
            onGameChange={updateGame}
            errors={errors}
-           isLoading={isLoading}
+           isLoading={isLoading || isUploading}
          />
        );
 
@@ -220,7 +287,7 @@ const AddProjectWizard = ({
            formData={formData}
            onPaintsAdded={addPaints}
            onPaintRemoved={removePaint}
-           isLoading={isLoading}
+           isLoading={isLoading || isUploading}
          />
        );
 
@@ -251,7 +318,7 @@ const AddProjectWizard = ({
            onFilesSelected={handlePhotosSelected}
            onFileRemoved={handlePhotoRemoved}
            maxPhotos={50}
-           isLoading={isLoading}
+           isLoading={isLoading || isUploading}
            errors={errors}
          />
        );
@@ -270,7 +337,7 @@ const AddProjectWizard = ({
          <ProjectPhotoDetailsStep
            formData={photoFormData}
            onMetadataUpdated={handlePhotoMetadataUpdated}
-           isLoading={isLoading}
+           isLoading={isLoading || isUploading}
            errors={errors}
          />
        );
@@ -309,6 +376,15 @@ const AddProjectWizard = ({
        {renderStepContent()}
      </div>
 
+     {/* Upload Progress Display */}
+     {isUploading && (
+       <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+         <div className="text-blue-800 dark:text-blue-300 text-sm font-medium text-center">
+           📤 Uploading photos and creating project...
+         </div>
+       </div>
+     )}
+
      {/* Submit Error Display */}
      {errors.submit && (
        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl p-4">
@@ -323,7 +399,7 @@ const AddProjectWizard = ({
        canGoPrevious={canGoPrevious() || (currentStep === 2 && currentPhotoStep > 0)}
        canGoNext={canGoNext() || (currentStep === 2 && currentPhotoStep < PHOTO_STEPS.length - 1)}
        isLastStep={isLastStep() && (currentStep !== 2 || currentPhotoStep === PHOTO_STEPS.length - 1)}
-       isLoading={isLoading}
+       isLoading={isLoading || isUploading}
        onPrevious={handlePrevious}
        onNext={handleNext}
        onCancel={onCancel}

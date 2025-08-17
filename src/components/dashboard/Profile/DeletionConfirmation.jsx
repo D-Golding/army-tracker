@@ -1,4 +1,4 @@
-// components/dashboard/Profile/DeletionConfirmation.jsx - Simplified Deletion Confirmation Process
+// components/dashboard/Profile/DeletionConfirmation.jsx - Complete with Cloud Functions
 import React, { useState } from 'react';
 import {
   AlertTriangle,
@@ -6,17 +6,11 @@ import {
   Trash2,
   Eye,
   EyeOff,
-  Shield
+  Calendar
 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
-import {
-  reauthenticateWithCredential,
-  EmailAuthProvider,
-  deleteUser
-} from 'firebase/auth';
-import { doc, updateDoc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../../../firebase';
-import { deletePhotoByURL } from '../../../services/photoService';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../../../firebase';
 import { sendAccountDeletionConfirmationEmail } from '../../../services/emailService';
 import ConfirmationModal from '../../common/ConfirmationModal';
 
@@ -29,7 +23,6 @@ const DeletionConfirmation = ({
   const { currentUser, userProfile, logout } = useAuth();
   const [formData, setFormData] = useState({
     password: '',
-    dataRetention: type === 'immediate-permanent' ? 'immediate' : '30days',
     acknowledgeSubscription: false,
     acknowledgeDataLoss: false,
     acknowledgeNoRecovery: false
@@ -86,10 +79,12 @@ const DeletionConfirmation = ({
 
     setIsDeleting(true);
 
-    // Call the actual deletion process directly
     try {
-      // Process deletion immediately without email verification
-      await processImmediateDeletion();
+      if (type === 'immediate-permanent') {
+        await processImmediateDeletion();
+      } else if (type === 'scheduled') {
+        await processScheduledDeletion();
+      }
     } catch (error) {
       console.error('Error processing account deletion:', error);
       setErrors({ general: 'Failed to process account deletion. Please try again.' });
@@ -97,102 +92,21 @@ const DeletionConfirmation = ({
     }
   };
 
-  // Process immediate deletion
+  // Process immediate deletion using Cloud Function
   const processImmediateDeletion = async () => {
     try {
-      // Re-authenticate user first
-      if (formData.password) {
-        const credential = EmailAuthProvider.credential(
-          currentUser.email,
-          formData.password
-        );
-        await reauthenticateWithCredential(currentUser, credential);
-      }
-
-      if (formData.dataRetention === '30days') {
-        // For 30-day retention: deactivate account but keep data
-        await processThirtyDayDeletion();
-      } else {
-        // For immediate deletion: delete everything permanently
-        await processPermanentDeletion();
-      }
-
-    } catch (error) {
-      console.error('Error with deletion:', error);
-      throw error;
-    }
-  };
-
-  // Process 30-day deletion (deactivate account, keep data)
-  const processThirtyDayDeletion = async () => {
-    try {
-      const userId = currentUser.uid;
       const userEmail = currentUser.email;
       const userName = userProfile?.displayName || 'User';
 
-      // Update user profile to mark as deactivated
-      await updateDoc(doc(db, 'users', userId), {
-        accountStatus: 'deactivated_for_deletion',
-        deactivatedAt: new Date(),
-        deletionScheduledFor: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-        deletionType: '30day_grace',
-        recoveryToken: generateRecoveryToken()
-      });
+      // Call the Cloud Function to delete everything
+      const deleteFunction = httpsCallable(functions, 'deleteUserAccountImmediate');
+      const result = await deleteFunction({ uid: currentUser.uid });
 
-      // Send confirmation email with recovery link
-      await sendAccountDeletionConfirmationEmail(
-        userEmail,
-        userName,
-        '30-day grace period',
-        true, // hasRecoveryOption
-        generateRecoveryUrl(userId)
-      );
+      if (!result.data.success) {
+        throw new Error(result.data.message || 'Deletion failed');
+      }
 
-      // Sign out user (account is now deactivated)
-      await logout();
-
-      // Show success modal instead of alert
-      setModalConfig({
-        title: 'Account Deactivated',
-        message: (
-          <div>
-            <p className="mb-3">Your account has been deactivated and will be permanently deleted in 30 days.</p>
-            <p className="mb-3"><strong>Recovery email sent</strong> to {userEmail}</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              You can recover your account anytime within the next 30 days using the link in your email.
-            </p>
-          </div>
-        ),
-        type: 'warning',
-        primaryAction: {
-          label: 'Go to Homepage',
-          onClick: () => {
-            setShowModal(false);
-            window.location.href = '/';
-          }
-        }
-      });
-      setShowModal(true);
-
-    } catch (error) {
-      console.error('Error with 30-day deletion:', error);
-      throw error;
-    }
-  };
-
-  // Process permanent deletion
-  const processPermanentDeletion = async () => {
-    try {
-      const userEmail = currentUser.email;
-      const userName = userProfile?.displayName || 'User';
-
-      // Delete user data from Firestore
-      await deleteUserData();
-
-      // Delete user photos from Storage
-      await deleteUserPhotos();
-
-      // Send confirmation email (before deleting auth account)
+      // Send confirmation email
       await sendAccountDeletionConfirmationEmail(
         userEmail,
         userName,
@@ -201,13 +115,10 @@ const DeletionConfirmation = ({
         null
       );
 
-      // Delete Firebase Auth account
-      await deleteUser(currentUser);
-
-      // Logout and redirect
+      // Logout user
       await logout();
 
-      // Show success modal instead of alert
+      // Show success modal
       setModalConfig({
         title: 'Account Permanently Deleted',
         message: (
@@ -231,64 +142,60 @@ const DeletionConfirmation = ({
       setShowModal(true);
 
     } catch (error) {
-      console.error('Error with permanent deletion:', error);
+      console.error('Error with immediate deletion:', error);
       throw error;
     }
   };
 
-  // Generate recovery token
-  const generateRecoveryToken = () => {
-    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-  };
-
-  // Generate recovery URL
-  const generateRecoveryUrl = (userId) => {
-    const token = generateRecoveryToken();
-    return `${window.location.origin}/account-recovery?userId=${userId}&token=${token}`;
-  };
-
-  // Delete all user data from Firestore
-  const deleteUserData = async () => {
-    const userId = currentUser.uid;
-
+  // Process scheduled deletion using Cloud Function
+  const processScheduledDeletion = async () => {
     try {
-      // Delete user's subcollections first
-      const subcollections = ['projects', 'paints', 'wishlist', 'needToBuy'];
+      const userEmail = currentUser.email;
+      const userName = userProfile?.displayName || 'User';
 
-      for (const subcollection of subcollections) {
-        const subCollectionRef = collection(db, 'users', userId, subcollection);
-        const snapshot = await getDocs(subCollectionRef);
+      // Call the Cloud Function to schedule deletion
+      const scheduleFunction = httpsCallable(functions, 'scheduleUserDeletion');
+      const result = await scheduleFunction({
+        uid: currentUser.uid,
+        scheduledDate: subscriptionExpiryDate?.toISOString()
+      });
 
-        for (const document of snapshot.docs) {
-          await deleteDoc(document.ref);
+      if (!result.data.success) {
+        throw new Error(result.data.message || 'Scheduling failed');
+      }
+
+      // Send confirmation email
+      await sendAccountDeletionConfirmationEmail(
+        userEmail,
+        userName,
+        `scheduled for ${subscriptionExpiryDate?.toLocaleDateString()}`,
+        false, // hasRecoveryOption
+        null
+      );
+
+      // Show success modal
+      setModalConfig({
+        title: 'Deletion Scheduled',
+        message: (
+          <div>
+            <p className="mb-3">Your account has been scheduled for deletion on <strong>{subscriptionExpiryDate?.toLocaleDateString()}</strong>.</p>
+            <p className="mb-3"><strong>Confirmation email sent</strong> to {userEmail}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              You can cancel this scheduled deletion anytime through your profile settings before the scheduled date.
+            </p>
+          </div>
+        ),
+        type: 'success',
+        primaryAction: {
+          label: 'Continue Using Account',
+          onClick: () => setShowModal(false)
         }
-      }
-
-      // Delete main user profile last
-      await deleteDoc(doc(db, 'users', userId));
+      });
+      setShowModal(true);
 
     } catch (error) {
-      console.error('Error deleting user data:', error);
+      console.error('Error with scheduled deletion:', error);
       throw error;
-    }
-  };
-
-  // Delete all user photos from Storage
-  const deleteUserPhotos = async () => {
-    try {
-      // Delete profile photo
-      if (userProfile?.photoURL) {
-        await deletePhotoByURL(userProfile.photoURL);
-      }
-
-      // Note: In a full implementation, you'd also:
-      // 1. Query all project photos
-      // 2. Query all step photos
-      // 3. Delete each photo from storage
-
-    } catch (error) {
-      console.error('Error deleting user photos:', error);
-      // Don't throw here - photo deletion failures shouldn't stop account deletion
     }
   };
 
@@ -304,7 +211,7 @@ const DeletionConfirmation = ({
           <p className="text-gray-600 dark:text-gray-400">
             {type === 'immediate-permanent'
               ? 'Your account and data will be permanently deleted immediately'
-              : 'Your account will be disabled immediately with 30-day data retention'
+              : 'Your account will be deleted when your subscription expires'
             }
           </p>
         </div>
@@ -336,44 +243,6 @@ const DeletionConfirmation = ({
               <p className="form-error">{errors.password}</p>
             )}
           </div>
-
-          {/* Data Retention Options (only for immediate-30day type) */}
-          {type === 'immediate-30day' && (
-            <div>
-              <label className="form-label">Data Retention</label>
-              <div className="space-y-3">
-                <label className="flex items-start gap-3 p-3 border border-gray-200 dark:border-gray-600 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <input
-                    type="radio"
-                    name="dataRetention"
-                    value="30days"
-                    checked={formData.dataRetention === '30days'}
-                    onChange={(e) => handleInputChange('dataRetention', e.target.value)}
-                    className="form-radio mt-1"
-                  />
-                  <div className="text-sm">
-                    <p className="font-medium text-gray-900 dark:text-white">30-Day Grace Period (Recommended)</p>
-                    <p className="text-gray-600 dark:text-gray-400">Account disabled immediately, data kept for 30 days for recovery</p>
-                  </div>
-                </label>
-
-                <label className="flex items-start gap-3 p-3 border border-gray-200 dark:border-gray-600 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <input
-                    type="radio"
-                    name="dataRetention"
-                    value="immediate"
-                    checked={formData.dataRetention === 'immediate'}
-                    onChange={(e) => handleInputChange('dataRetention', e.target.value)}
-                    className="form-radio mt-1"
-                  />
-                  <div className="text-sm">
-                    <p className="font-medium text-gray-900 dark:text-white">Delete Immediately</p>
-                    <p className="text-gray-600 dark:text-gray-400">All data permanently deleted right away</p>
-                  </div>
-                </label>
-              </div>
-            </div>
-          )}
 
           {/* Acknowledgements */}
           <div className="space-y-4">
@@ -410,8 +279,8 @@ const DeletionConfirmation = ({
                   This action cannot be undone
                 </p>
                 <p className="text-gray-600 dark:text-gray-400">
-                  {formData.dataRetention === '30days'
-                    ? 'After 30 days, no recovery will be possible'
+                  {type === 'scheduled'
+                    ? 'After the scheduled date, no recovery will be possible'
                     : 'No backup exists and support cannot recover deleted accounts'
                   }
                 </p>
@@ -429,11 +298,16 @@ const DeletionConfirmation = ({
                 />
                 <div className="text-sm">
                   <p className="font-medium text-amber-900 dark:text-amber-100 mb-1">
-                    I will forfeit my remaining subscription
+                    {type === 'scheduled'
+                      ? 'I understand my subscription will end naturally'
+                      : 'I will forfeit my remaining subscription'
+                    }
                   </p>
                   <p className="text-amber-800 dark:text-amber-200">
-                    Subscription expires {subscriptionExpiryDate?.toLocaleDateString()}.
-                    No refund for unused time.
+                    {type === 'scheduled'
+                      ? `Full access until ${subscriptionExpiryDate?.toLocaleDateString()}, then account deletion`
+                      : `Subscription expires ${subscriptionExpiryDate?.toLocaleDateString()}. No refund for unused time.`
+                    }
                   </p>
                 </div>
               </label>
@@ -457,7 +331,7 @@ const DeletionConfirmation = ({
                   {errors.password && <li>• Enter your password</li>}
                   {errors.acknowledgeDataLoss && <li>• Acknowledge data loss</li>}
                   {errors.acknowledgeNoRecovery && <li>• Acknowledge no recovery</li>}
-                  {errors.acknowledgeSubscription && <li>• Acknowledge subscription forfeiture</li>}
+                  {errors.acknowledgeSubscription && <li>• Acknowledge subscription terms</li>}
                 </ul>
               </div>
             </div>
@@ -473,7 +347,10 @@ const DeletionConfirmation = ({
             <div className="text-red-800 dark:text-red-200">
               <p className="font-semibold mb-2">Final Warning</p>
               <p className="text-sm">
-                This action will immediately and permanently delete your account. This cannot be undone.
+                {type === 'immediate-permanent'
+                  ? 'This action will immediately and permanently delete your account. This cannot be undone.'
+                  : `Your account will be automatically deleted on ${subscriptionExpiryDate?.toLocaleDateString()}. This cannot be undone after the deletion date.`
+                }
               </p>
             </div>
           </div>
@@ -497,10 +374,13 @@ const DeletionConfirmation = ({
         >
           {isDeleting ? (
             <div className="loading-spinner"></div>
+          ) : type === 'scheduled' ? (
+            <Calendar className="w-5 h-5" />
           ) : (
             <Trash2 className="w-5 h-5" />
           )}
-          {isDeleting ? 'Deleting Account...' : 'Delete Account'}
+          {isDeleting ? 'Processing...' :
+           type === 'scheduled' ? 'Schedule Deletion' : 'Delete Account Now'}
         </button>
       </div>
 
