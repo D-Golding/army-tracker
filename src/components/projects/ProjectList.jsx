@@ -1,5 +1,6 @@
-// components/projects/ProjectList.jsx - Updated with Pagination Support
-import React, { useState, useMemo } from 'react';
+// components/projects/ProjectList.jsx - Updated with Auto-Load Scroll System
+import React, { useState, useMemo, useEffect } from 'react';
+import { useInView } from 'react-intersection-observer';
 import { useProjectListDataPaginated, useProjectOperations } from '../../hooks/useProjects';
 import { useProjectPaintCheck } from '../../hooks/useProjects';
 import { useSubscription } from '../../hooks/useSubscription';
@@ -27,7 +28,7 @@ const ProjectList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProject, setSelectedProject] = useState(null);
 
-  // Get paginated project data - UPDATED TO USE PAGINATION
+  // Get paginated project data
   const basicFilter = filters.status || 'all';
   const {
     projects: allPaginatedProjects,
@@ -39,7 +40,20 @@ const ProjectList = () => {
     fetchNextPage,
     isFetchingNextPage,
     refetch
-  } = useProjectListDataPaginated(basicFilter, 5);
+  } = useProjectListDataPaginated(basicFilter, 3);
+
+  // Intersection observer for auto-loading - ADDED
+  const { ref: loadMoreRef, inView } = useInView({
+    threshold: 0,
+    rootMargin: '800px', // Load when user is 800px from the bottom
+  });
+
+  // Auto-load more projects when the load more element comes into view - ADDED
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // Get project operations
   const {
@@ -48,7 +62,7 @@ const ProjectList = () => {
     isLoading: isOperationLoading
   } = useProjectOperations();
 
-  // Get unique values for filter dropdowns - UPDATED to use paginated data
+  // Get unique values for filter dropdowns
   const availableManufacturers = useMemo(() =>
     getUniqueManufacturers(allPaginatedProjects), [allPaginatedProjects]
   );
@@ -57,7 +71,7 @@ const ProjectList = () => {
     getUniqueGames(allPaginatedProjects), [allPaginatedProjects]
   );
 
-  // Apply filters and grouping with search - UPDATED to use paginated data
+  // Apply filters and grouping with search
   const { filteredProjects, groupedProjects } = useMemo(() => {
     if (!allPaginatedProjects) return { filteredProjects: [], groupedProjects: {} };
 
@@ -166,6 +180,13 @@ const ProjectList = () => {
     setSelectedProject(project);
   };
 
+  // Handle manual load more - ADDED
+  const handleLoadMore = () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  };
+
   // Show error state
   if (isError) {
     return (
@@ -265,7 +286,7 @@ const ProjectList = () => {
                 )}
                 {hasNextPage && (
                   <span className="ml-2 text-blue-600 dark:text-blue-400">
-                    (More projects available - click "Load More" below)
+                    (More projects available - scroll down to load more)
                   </span>
                 )}
               </div>
@@ -282,18 +303,21 @@ const ProjectList = () => {
             isLoading={isOperationLoading}
           />
 
-          {/* Load More Button - NEW */}
+          {/* Load More Section - UPDATED */}
           {hasNextPage && (
-            <div className="text-center mt-6 mb-4">
+            <div className="text-center py-6">
+              {/* Invisible trigger element for auto-loading - ADDED */}
+              <div ref={loadMoreRef} className="h-1" />
+
               <button
-                onClick={fetchNextPage}
+                onClick={handleLoadMore}
                 disabled={isFetchingNextPage || isOperationLoading}
                 className="btn-primary btn-md px-8"
               >
                 {isFetchingNextPage ? (
                   <>
                     <div className="loading-spinner mr-2"></div>
-                    Loading more projects...
+                    Loading More Projects...
                   </>
                 ) : (
                   <>
@@ -302,8 +326,39 @@ const ProjectList = () => {
                   </>
                 )}
               </button>
+
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                 {allPaginatedProjects.length} projects loaded so far
+              </div>
+
+              {/* Loading indicators for next page - ADDED */}
+              {isFetchingNextPage && (
+                <div className="mt-6 space-y-4">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="card-base overflow-hidden">
+                      <div className="animate-pulse">
+                        <div className="aspect-video bg-gray-200 dark:bg-gray-700"></div>
+                        <div className="card-padding">
+                          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-4"></div>
+                          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-2"></div>
+                          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-2/3"></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* End of Results Message - ADDED */}
+          {!hasNextPage && allPaginatedProjects?.length > 0 && (
+            <div className="text-center py-6">
+              <div className="text-gray-500 dark:text-gray-400 text-sm mb-2">
+                You've seen all projects
+              </div>
+              <div className="text-gray-400 dark:text-gray-500 text-xs">
+                {allPaginatedProjects.length} project{allPaginatedProjects.length !== 1 ? 's' : ''} total
               </div>
             </div>
           )}

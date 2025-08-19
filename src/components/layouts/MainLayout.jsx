@@ -1,4 +1,4 @@
-// components/layouts/MainLayout.jsx - Updated with GlobalFooter
+// components/layouts/MainLayout.jsx - Fixed active state detection
 import React, { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Moon, Sun, Palette, Folder, Users, Target } from 'lucide-react';
@@ -40,12 +40,48 @@ const MainLayout = () => {
     return 'User';
   };
 
+  // Check if user can access community features
+  const canAccessCommunity = () => {
+    return userProfile?.userCategory === 'adult' && userProfile?.communityAccess === true;
+  };
+
   const navItems = [
-    { path: '/app/community', icon: Users, label: 'Community' },
-    { path: '/app/battle-planner', icon: Target, label: 'Battle Planner' },
-    { path: '/app', icon: Palette, label: 'Paint Inventory' },
-    { path: '/app/projects', icon: Folder, label: 'Projects' }
+    {
+      path: '/app/community',
+      icon: Users,
+      label: 'Community',
+      enabled: canAccessCommunity()
+    },
+    {
+      path: '/app/battle-planner',
+      icon: Target,
+      label: 'Battle Planner',
+      enabled: false // Still placeholder
+    },
+    {
+      path: '/app',
+      icon: Palette,
+      label: 'Paint Inventory',
+      enabled: true
+    },
+    {
+      path: '/app/projects',
+      icon: Folder,
+      label: 'Projects',
+      enabled: true
+    }
   ];
+
+  // Fixed active state detection
+  const getIsActive = (itemPath) => {
+    if (itemPath === '/app') {
+      // Paint Inventory should only be active on exact /app path
+      return location.pathname === '/app';
+    } else {
+      // Other paths use startsWith for sub-routes
+      return location.pathname.startsWith(itemPath);
+    }
+  };
 
   return (
     <div className={darkMode ? 'dark' : ''}>
@@ -145,14 +181,14 @@ const MainLayout = () => {
             )}
           </div>
 
-          {/* Navigation Tabs - 2x2 Grid keeping exact original styling */}
+          {/* Navigation Tabs - 2x2 Grid */}
           <div className="bg-white dark:bg-gray-800 mx-4 -mt-3 rounded-xl shadow-lg relative z-5 border border-gray-100 dark:border-gray-700 grid grid-cols-2 divide-x divide-y divide-gray-200 dark:divide-gray-600">
             {navItems.map((item) => {
               const IconComponent = item.icon;
-              const isActive = location.pathname === item.path;
+              const isActive = getIsActive(item.path);
 
-              if (item.path === '/app/community' || item.path === '/app/battle-planner') {
-                // For placeholder buttons, don't make them links
+              if (!item.enabled) {
+                // For disabled buttons, show them but make them non-functional
                 return (
                   <div
                     key={item.path}

@@ -59,6 +59,21 @@ export const queryKeys = {
     list: (userId) => [...queryKeys.notifications.all, 'list', userId],
     unread: (userId) => [...queryKeys.notifications.all, 'unread', userId],
   },
+
+  // Friend keys - ADDED FOR FRIEND SYSTEM
+  friends: {
+    all: ['friends'],
+    lists: () => [...queryKeys.friends.all, 'list'],
+    list: (filter) => [...queryKeys.friends.lists(), filter],
+    requests: () => [...queryKeys.friends.all, 'requests'],
+    pendingRequests: () => [...queryKeys.friends.requests(), 'pending'],
+    sentRequests: () => [...queryKeys.friends.requests(), 'sent'],
+    search: (term) => [...queryKeys.friends.all, 'search', term],
+    suggestions: () => [...queryKeys.friends.all, 'suggestions'],
+    relationship: (userId) => [...queryKeys.friends.all, 'relationship', userId],
+    socialProfile: (userId) => [...queryKeys.friends.all, 'socialProfile', userId],
+    socialStats: () => [...queryKeys.friends.all, 'socialStats']
+  },
 };
 
 // Create the QueryClient with professional configuration
@@ -211,6 +226,23 @@ export const invalidateSocialQueries = (userId = null) => {
 export const invalidateNotificationQueries = (userId) => {
   queryClient.invalidateQueries({ queryKey: queryKeys.notifications.list(userId) });
   queryClient.invalidateQueries({ queryKey: queryKeys.notifications.unread(userId) });
+};
+
+// Cache invalidation helpers for friend features - ADDED
+export const invalidateFriendQueries = () => {
+  queryClient.invalidateQueries({ queryKey: queryKeys.friends.all });
+};
+
+export const invalidateFriendRequestQueries = () => {
+  queryClient.invalidateQueries({ queryKey: queryKeys.friends.requests() });
+};
+
+export const invalidateFriendSocialQueries = (userId = null) => {
+  if (userId) {
+    queryClient.invalidateQueries({ queryKey: queryKeys.friends.socialProfile(userId) });
+  } else {
+    queryClient.invalidateQueries({ queryKey: queryKeys.friends.socialStats() });
+  }
 };
 
 // Optimistic update helpers for community features

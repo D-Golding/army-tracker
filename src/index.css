@@ -477,6 +477,165 @@
     -webkit-touch-callout: none;
   }
 
+ /* ========================================
+     SWIPER CAROUSEL STYLES
+  ======================================== */
+
+  /* Swiper custom styles for PostCard photo carousel */
+  .photo-carousel {
+    --swiper-navigation-size: 16px;
+    --swiper-theme-color: #ffffff;
+    position: relative;
+  }
+
+  /* Force navigation button visibility and styling */
+  .photo-carousel .swiper-button-prev,
+  .photo-carousel .swiper-button-next {
+    width: 32px !important;
+    height: 32px !important;
+    margin-top: -16px !important;
+    background: rgba(0, 0, 0, 0.7) !important;
+    border: 2px solid rgba(255, 255, 255, 0.3) !important;
+    border-radius: 50% !important;
+    color: white !important;
+    transition: all 0.2s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 10 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  .photo-carousel .swiper-button-prev:hover,
+  .photo-carousel .swiper-button-next:hover {
+    background: rgba(0, 0, 0, 0.9) !important;
+    border-color: rgba(255, 255, 255, 0.6) !important;
+    transform: scale(1.1) !important;
+  }
+
+  /* Force the arrow icons to be visible */
+  .photo-carousel .swiper-button-prev::after,
+  .photo-carousel .swiper-button-next::after {
+    font-family: swiper-icons !important;
+    font-size: 14px !important;
+    font-weight: 900 !important;
+    color: white !important;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.5) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  /* Ensure proper positioning */
+  .photo-carousel .swiper-button-prev {
+    left: 8px !important;
+    right: auto !important;
+  }
+
+  .photo-carousel .swiper-button-next {
+    right: 8px !important;
+    left: auto !important;
+  }
+
+  /* Alternative: Use custom icons if Swiper icons don't work */
+  .photo-carousel .swiper-button-prev::before,
+  .photo-carousel .swiper-button-next::before {
+    content: '' !important;
+    position: absolute !important;
+    width: 0 !important;
+    height: 0 !important;
+    border-style: solid !important;
+  }
+
+  .photo-carousel .swiper-button-prev::before {
+    border-width: 6px 8px 6px 0 !important;
+    border-color: transparent white transparent transparent !important;
+    left: 10px !important;
+  }
+
+  .photo-carousel .swiper-button-next::before {
+    border-width: 6px 0 6px 8px !important;
+    border-color: transparent transparent transparent white !important;
+    right: 10px !important;
+  }
+
+  /* Pagination styling */
+  .photo-carousel .swiper-pagination {
+    bottom: 12px !important;
+    padding: 8px 16px !important;
+    background: rgba(0, 0, 0, 0.4) !important;
+    border-radius: 20px !important;
+    width: auto !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    z-index: 10 !important;
+  }
+
+  .photo-carousel .swiper-pagination-bullet {
+    background: rgba(255, 255, 255, 0.7) !important;
+    opacity: 0.6 !important;
+    transition: all 0.2s ease !important;
+    width: 8px !important;
+    height: 8px !important;
+    margin: 0 4px !important;
+  }
+
+  .photo-carousel .swiper-pagination-bullet-active {
+    background: white !important;
+    opacity: 1 !important;
+    transform: scale(1.3) !important;
+  }
+
+  /* Dark mode adjustments */
+  .dark .photo-carousel .swiper-pagination-bullet {
+    background: rgba(255, 255, 255, 0.6) !important;
+  }
+
+  .dark .photo-carousel .swiper-pagination-bullet-active {
+    background: white !important;
+  }
+
+  /* Hide navigation on mobile, show pagination */
+  @media (max-width: 768px) {
+    .photo-carousel .swiper-button-prev,
+    .photo-carousel .swiper-button-next {
+      display: none !important;
+    }
+
+    .photo-carousel .swiper-pagination {
+      bottom: 8px !important;
+    }
+  }
+
+  /* Force show navigation on desktop */
+  @media (min-width: 769px) {
+    .photo-carousel .swiper-button-prev,
+    .photo-carousel .swiper-button-next {
+      display: flex !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+  }
+
+  /* Ensure container allows buttons to be visible */
+  .photo-carousel .swiper-wrapper {
+    position: relative !important;
+  }
+
+  /* Ensure photos don't have weird spacing */
+  .photo-carousel .swiper-slide {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .photo-carousel .swiper-slide img {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    object-fit: cover !important;
+  }
+
   /* ========================================
      EMPTY STATES
   ======================================== */

@@ -103,7 +103,7 @@ const AddProjectWizard = ({
      let uploadedPhotos = [];
 
      if (photoFormData.files && photoFormData.files.length > 0) {
-       console.log('🔄 Starting photo uploads...');
+       console.log('📄 Starting photo uploads...');
 
        // Get current user info
        const userId = auth.currentUser?.uid;
@@ -138,22 +138,31 @@ const AddProjectWizard = ({
          throw new Error(`Photo upload failed: ${errorMessage}`);
        }
 
-       // STEP 2: Create photo objects with Firebase Storage URLs and metadata
+       // STEP 2: Create photo objects with Firebase Storage URLs and metadata - FIXED
        uploadedPhotos = uploadResults.map((uploadResult, index) => {
          const originalFile = photoFormData.files[index];
 
-         return {
-           url: uploadResult.downloadURL, // ✅ Firebase Storage URL (not blob URL!)
-           title: originalFile.metadata?.title || '',
-           description: originalFile.metadata?.description || '',
-           originalFileName: originalFile.fileName,
+         // Ensure all values are defined - no undefined values for Firestore
+         const photoObject = {
+           url: uploadResult.downloadURL || '',
+           title: (originalFile.metadata?.title || '').trim(),
+           description: (originalFile.metadata?.description || '').trim(),
+           originalFileName: originalFile.fileName || '',
            uploadedAt: new Date().toISOString(),
-           wasEdited: originalFile.editData?.croppedBlob && !originalFile.editData?.skipEditing,
-           aspectRatio: originalFile.editData?.aspectRatio || 'original',
-           // Additional metadata from upload
-           fileSize: uploadResult.metadata?.size,
-           contentType: uploadResult.metadata?.contentType
+           wasEdited: Boolean(originalFile.editData?.croppedBlob && !originalFile.editData?.skipEditing),
+           aspectRatio: originalFile.editData?.aspectRatio || 'original'
          };
+
+         // Only add optional metadata if it exists and is not undefined
+         if (uploadResult.metadata?.size !== undefined) {
+           photoObject.fileSize = uploadResult.metadata.size;
+         }
+
+         if (uploadResult.metadata?.contentType !== undefined) {
+           photoObject.contentType = uploadResult.metadata.contentType;
+         }
+
+         return photoObject;
        });
 
        console.log('✅ Photos uploaded successfully:', uploadedPhotos.length);

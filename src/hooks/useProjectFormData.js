@@ -1,4 +1,4 @@
-// hooks/useProjectFormData.js - Project wizard form data management
+// hooks/useProjectFormData.js - Project wizard form data management - FIXED
 import { useState } from 'react';
 
 export const useProjectFormData = () => {
@@ -106,32 +106,33 @@ export const useProjectFormData = () => {
     }));
   };
 
-  // Format data for project creation
+  // Format data for project creation - FIXED VERSION
   const getProjectData = () => {
-    // Determine final manufacturer and game values
+    // Determine final manufacturer and game values - with null checks
     const finalManufacturer = formData.manufacturer === 'custom'
-      ? formData.customManufacturer.trim()
-      : formData.manufacturer;
+      ? (formData.customManufacturer || '').trim()
+      : (formData.manufacturer || '');
 
     const finalGame = formData.game === 'custom'
-      ? formData.customGame.trim()
-      : formData.game;
+      ? (formData.customGame || '').trim()
+      : (formData.game || '');
 
-    return {
-      name: formData.name.trim(),
-      manufacturer: finalManufacturer || '',
-      game: finalGame || '',
-      description: formData.description?.trim() || '',
+    // Ensure all fields have valid values (no undefined)
+    const projectData = {
+      name: (formData.name || '').trim(),
+      manufacturer: finalManufacturer,
+      game: finalGame,
+      description: (formData.description || '').trim(),
       difficulty: formData.difficulty || 'beginner',
       status: 'upcoming',
 
       // Initialize arrays for project structure
       requiredPaints: [],
-      photoURLs: formData.uploadedPhotos,
-      coverPhotoURL: formData.coverPhotoURL,
+      photoURLs: formData.uploadedPhotos || [],
+      coverPhotoURL: formData.coverPhotoURL || null,
 
       // Paint overview from wizard selections
-      paintOverview: formData.selectedPaints.map(paint => ({
+      paintOverview: (formData.selectedPaints || []).map(paint => ({
         paintId: paint.id,
         paintName: paint.name,
         brand: paint.brand,
@@ -149,6 +150,15 @@ export const useProjectFormData = () => {
       created: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
+
+    // Remove any undefined values (Firestore doesn't like them)
+    Object.keys(projectData).forEach(key => {
+      if (projectData[key] === undefined) {
+        delete projectData[key];
+      }
+    });
+
+    return projectData;
   };
 
   // Reset form to initial state

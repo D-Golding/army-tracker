@@ -9,25 +9,37 @@ export const TIER_LIMITS = {
     paints: 25,
     projects: 5,
     photosPerProject: 10,
-    stepsPerProject: 15
+    stepsPerProject: 15,
+    paintAssignments: 50,
+    friends: 25,
+    friendRequests: 10
   },
   casual: {
     paints: 150,
     projects: 25,
     photosPerProject: 50,
-    stepsPerProject: 50
+    stepsPerProject: 50,
+    paintAssignments: 200,
+    friends: 100,
+    friendRequests: 20
   },
   pro: {
     paints: 300,
     projects: 100,
     photosPerProject: 100,
-    stepsPerProject: 100
+    stepsPerProject: 100,
+    paintAssignments: 500,
+    friends: 250,
+    friendRequests: 30
   },
   battle: {
     paints: 1000,
     projects: 500,
     photosPerProject: 200,
-    stepsPerProject: 200
+    stepsPerProject: 200,
+    paintAssignments: 1000,
+    friends: 500,
+    friendRequests: 50
   }
 };
 
@@ -222,5 +234,59 @@ export const getUpgradeSuggestions = async (currentUsage, userId = null) => {
       nextTierBenefits: {},
       error: error.message
     };
+  }
+};
+
+/**
+ * Check if user can send friend requests (friend system specific)
+ * @param {string} userId - Optional user ID, uses current user if not provided
+ * @returns {Promise<boolean>} Whether user can send friend requests
+ */
+export const canSendFriendRequest = async (userId = null) => {
+  try {
+    const currentUserId = userId || getCurrentUserId();
+
+    // Get user's social data to check daily limit
+    const socialDoc = await getDoc(doc(db, 'userSocial', currentUserId));
+    const requestsSentToday = socialDoc.exists() ? (socialDoc.data().requestsSentToday || 0) : 0;
+
+    // Check tier-based daily limit
+    const tierCheck = await checkTierLimit('friendRequests', requestsSentToday, currentUserId);
+
+    return tierCheck.canPerform;
+  } catch (error) {
+    console.error('Error checking friend request permission:', error);
+    return false;
+  }
+};
+
+/**
+ * Check if user can add more friends
+ * @param {number} currentFriendCount - Current number of friends
+ * @param {string} userId - Optional user ID, uses current user if not provided
+ * @returns {Promise<Object>} Check result
+ */
+export const canAddFriend = async (currentFriendCount, userId = null) => {
+  return await checkTierLimit('friends', currentFriendCount, userId);
+};
+
+/**
+ * Get remaining friend request allowance for today
+ * @param {string} userId - Optional user ID, uses current user if not provided
+ * @returns {Promise<number>} Remaining requests for today
+ */
+export const getRemainingFriendRequests = async (userId = null) => {
+  try {
+    const currentUserId = userId || getCurrentUserId();
+
+    const socialDoc = await getDoc(doc(db, 'userSocial', currentUserId));
+    const requestsSentToday = socialDoc.exists() ? (socialDoc.data().requestsSentToday || 0) : 0;
+
+    const tierCheck = await checkTierLimit('friendRequests', requestsSentToday, currentUserId);
+
+    return tierCheck.remaining || 0;
+  } catch (error) {
+    console.error('Error getting remaining friend requests:', error);
+    return 0;
   }
 };

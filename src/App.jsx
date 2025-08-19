@@ -1,5 +1,5 @@
-// App.jsx - Professional Navigation with Authentication States, Error Boundaries, and React Query
-import React, { useEffect } from 'react';
+// App.jsx - Professional Navigation with Lazy Loading for Data Cost Optimization
+import React, { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
@@ -11,29 +11,41 @@ import AuthPage from './components/auth/AuthPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import MainLayout from './components/layouts/MainLayout';
 import AdminLayout from './components/layouts/AdminLayout';
-import PaintList from './components/paints/PaintList';
-import ProjectList from "./components/projects/ProjectList";
-import ProjectDetailView from './components/projects/ProjectDetailView';
-import AddProjectPage from './pages/AddProjectPage';
-import AddStepPage from './pages/AddStepPage';
-import AddPhotosPage from './pages/AddPhotosPage';
-import AdminDashboard from './components/AdminDashboard';
 import PaymentForm from './components/payment/PaymentForm';
 import ForgotPasswordPage from './components/auth/ForgotPasswordPage';
 import NotificationManager from './components/NotificationManager';
 import AccountRecovery from './components/AccountRecovery';
 import GlobalFooter from './components/GlobalFooter';
 
-// Import Dashboard Layout (the real one)
-import UserDashboardLayout from './components/dashboard/UserDashboardLayout';
+// IMMEDIATE IMPORTS (load right away)
+// Community/Newsfeed - keep instant since it's the main landing page
+import CommunityPage from './pages/CommunityPage';
 
+// LAZY IMPORTS (load only when needed) - DATA COST OPTIMIZATION
+const PaintList = lazy(() => import('./components/paints/PaintList'));
+const ProjectList = lazy(() => import('./components/projects/ProjectList'));
+const ProjectDetailView = lazy(() => import('./components/projects/ProjectDetailView'));
+const AddProjectPage = lazy(() => import('./pages/AddProjectPage'));
+const AddStepPage = lazy(() => import('./pages/AddStepPage'));
+const AddPhotosPage = lazy(() => import('./pages/AddPhotosPage'));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
+const UserDashboardLayout = lazy(() => import('./components/dashboard/UserDashboardLayout'));
+const CreatePostPage = lazy(() => import('./pages/CreatePostPage'));
+const MyPostsPage = lazy(() => import('./pages/MyPostsPage'));
+
+// Loading Spinner Component for Lazy Loading
+const LazyLoadingSpinner = () => (
+  <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+    <div className="text-center">
+      <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+      <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+    </div>
+  </div>
+);
 
 // Main App Router Component
 const AppRouter = () => {
   const { authState, isLoading, AUTH_STATES } = useAuth();
-
-
-
 
   // Show loading screen during initial auth check
   if (isLoading) {
@@ -65,7 +77,8 @@ const AppRouter = () => {
         path="/auth"
         element={
           authState === AUTH_STATES.AUTHENTICATED_COMPLETE ? (
-            <Navigate to="/app" replace />
+            // CHANGED: send authenticated users to Community by default
+            <Navigate to="/app/community" replace />
           ) : (
             <AuthPage />
           )
@@ -77,7 +90,8 @@ const AppRouter = () => {
         path="/forgot-password"
         element={
           authState === AUTH_STATES.AUTHENTICATED_COMPLETE ? (
-            <Navigate to="/app" replace />
+            // CHANGED: send authenticated users to Community by default
+            <Navigate to="/app/community" replace />
           ) : (
             <ForgotPasswordPage />
           )
@@ -105,22 +119,84 @@ const AppRouter = () => {
           </ProtectedRoute>
         }
       >
-        <Route index element={<PaintList />} />
-        <Route path="projects" element={<ProjectList />} />
-        <Route path="projects/new" element={<AddProjectPage />} />
-        <Route path="projects/:projectId" element={<ProjectDetailView />} />
-        <Route path="projects/:projectId/steps/new" element={<AddStepPage />} />
-        <Route path="projects/:projectId/photos/new" element={<AddPhotosPage />} />
-
-        {/* Future Community Routes (with appropriate protection) */}
+        {/* Keep Paints as the index so existing menu links to /app still work */}
         <Route
-          path="community/*"
+          index
+          element={
+            <Suspense fallback={<LazyLoadingSpinner />}>
+              <PaintList />
+            </Suspense>
+          }
+        />
+
+        {/* Projects Routes - LAZY LOADED */}
+        <Route
+          path="projects"
+          element={
+            <Suspense fallback={<LazyLoadingSpinner />}>
+              <ProjectList />
+            </Suspense>
+          }
+        />
+        <Route
+          path="projects/new"
+          element={
+            <Suspense fallback={<LazyLoadingSpinner />}>
+              <AddProjectPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="projects/:projectId"
+          element={
+            <Suspense fallback={<LazyLoadingSpinner />}>
+              <ProjectDetailView />
+            </Suspense>
+          }
+        />
+        <Route
+          path="projects/:projectId/steps/new"
+          element={
+            <Suspense fallback={<LazyLoadingSpinner />}>
+              <AddStepPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="projects/:projectId/photos/new"
+          element={
+            <Suspense fallback={<LazyLoadingSpinner />}>
+              <AddPhotosPage />
+            </Suspense>
+          }
+        />
+
+        {/* Community Routes - News Feed System (IMMEDIATE LOADING) */}
+        <Route
+          path="community"
           element={
             <ProtectedRoute requiresCommunityAccess={true}>
-              <div className="p-8 text-center">
-                <h2 className="text-2xl font-bold mb-4">Community Features Coming Soon</h2>
-                <p className="text-gray-600">Community features are in development!</p>
-              </div>
+              <CommunityPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="community/create"
+          element={
+            <ProtectedRoute requiresCommunityAccess={true}>
+              <Suspense fallback={<LazyLoadingSpinner />}>
+                <CreatePostPage />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="community/my-posts"
+          element={
+            <ProtectedRoute requiresCommunityAccess={true}>
+              <Suspense fallback={<LazyLoadingSpinner />}>
+                <MyPostsPage />
+              </Suspense>
             </ProtectedRoute>
           }
         />
@@ -138,14 +214,18 @@ const AppRouter = () => {
           }
         />
 
-        {/* Dashboard Route - Use your working UserDashboardLayout */}
+        {/* Dashboard Route - LAZY LOADED */}
         <Route
           path="dashboard/*"
-          element={<UserDashboardLayout />}
+          element={
+            <Suspense fallback={<LazyLoadingSpinner />}>
+              <UserDashboardLayout />
+            </Suspense>
+          }
         />
       </Route>
 
-      {/* Protected Admin Routes */}
+      {/* Protected Admin Routes - LAZY LOADED */}
       <Route
         path="/admin"
         element={
@@ -154,7 +234,14 @@ const AppRouter = () => {
           </ProtectedRoute>
         }
       >
-        <Route index element={<AdminDashboard />} />
+        <Route
+          index
+          element={
+            <Suspense fallback={<LazyLoadingSpinner />}>
+              <AdminDashboard />
+            </Suspense>
+          }
+        />
       </Route>
 
       {/* Privacy Policy & Legal Pages (accessible to all) */}
@@ -284,6 +371,6 @@ function App() {
       </QueryClientProvider>
     </ErrorBoundary>
   );
-}
+};
 
 export default App;
