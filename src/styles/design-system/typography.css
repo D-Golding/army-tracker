@@ -1,0 +1,33 @@
+/* src/styles/design-system/typography.css - Typography system */
+
+@layer components {
+  /* ========================================
+     TYPOGRAPHY UTILITIES
+  ======================================== */
+
+  /* Currently using Tailwind's built-in typography classes */
+  /* Add custom typography classes here as needed */
+
+  /* Example custom typography classes for future use: */
+  /*
+  .text-heading-xl {
+    @apply text-4xl font-bold leading-tight;
+  }
+
+  .text-heading-lg {
+    @apply text-3xl font-bold leading-tight;
+  }
+
+  .text-heading-md {
+    @apply text-2xl font-semibold leading-snug;
+  }
+
+  .text-body-lg {
+    @apply text-lg leading-relaxed;
+  }
+
+  .text-body-sm {
+    @apply text-sm leading-normal;
+  }
+  */
+}

@@ -1,0 +1,39 @@
+/* src/styles/base/responsive.css - Responsive utilities */
+
+@layer components {
+  /* ========================================
+     RESPONSIVE UTILITIES
+  ======================================== */
+
+  .mobile-only {
+    @apply block md:hidden;
+  }
+
+  .desktop-only {
+    @apply hidden md:block;
+  }
+
+  /* ========================================
+     TRANSITIONS
+  ======================================== */
+
+  .transition-base {
+    @apply transition-all duration-200 ease-in-out;
+  }
+
+  /* ========================================
+     HOVER EFFECTS
+  ======================================== */
+
+  .hover-lift {
+    @apply hover:transform hover:scale-105 transition-transform;
+  }
+
+  /* ========================================
+     FOCUS STATES
+  ======================================== */
+
+  .focus-brand {
+    @apply focus:ring-2 focus:ring-indigo-500 focus:border-transparent;
+  }
+}

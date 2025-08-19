@@ -1,0 +1,113 @@
+/* src/styles/components/header.css - Responsive header system */
+
+@layer components {
+  /* ========================================
+     HEADER BANNER SECTION - Full Width
+  ======================================== */
+
+  .header-banner {
+    @apply relative text-white p-6 pt-12 overflow-visible;
+    /* Enterprise min-height system - Increased for more breathing room */
+    min-height: 12rem; /* Mobile: 192px base */
+    /* Tablet & Desktop - More generous heights */
+    @apply md:p-8 md:pt-16 lg:p-12 lg:pt-20 xl:p-20 xl:pt-28;
+    /* Progressive height scaling - Taller for desktop */
+    @apply md:min-h-[16rem] lg:min-h-[20rem] xl:min-h-[24rem];
+
+    /* Full width, naturally - no container constraints */
+    width: 100%;
+    /* 17" Monitor Max (1920px) - center when at max width */
+    max-width: 1920px;
+    margin: 0 auto;
+  }
+
+  .header-banner-decorative {
+    @apply absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-8 translate-x-8 transform rotate-12;
+    /* Tablet & Desktop */
+    @apply md:w-40 md:h-40 lg:w-48 lg:h-48;
+  }
+
+  .header-banner-content {
+    @apply relative z-10 flex justify-between items-start;
+  }
+
+  .header-banner-title {
+    @apply text-2xl font-bold mb-1;
+    /* Tablet & Desktop - Third larger size for desktop */
+    @apply md:text-4xl lg:text-5xl xl:text-6xl;
+  }
+
+  .header-banner-subtitle {
+    @apply text-white/90 text-sm;
+    /* Tablet & Desktop - Larger subtitle scaling */
+    @apply md:text-lg lg:text-xl xl:text-2xl;
+  }
+
+  .header-banner-controls {
+    @apply flex gap-2 items-center;
+    /* Tablet & Desktop */
+    @apply md:gap-3 lg:gap-4;
+  }
+
+  .header-banner-edit-btn {
+    @apply absolute top-3 left-3 z-10;
+    /* Tablet & Desktop */
+    @apply md:top-4 md:left-4 lg:top-6 lg:left-6;
+  }
+
+  /* ========================================
+     HEADER CONTROL BUTTONS
+  ======================================== */
+
+  .header-control-btn {
+    @apply p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors;
+    /* Tablet & Desktop */
+    @apply md:p-3 lg:p-3;
+  }
+
+  /* ========================================
+     USAGE STATS SECTION
+  ======================================== */
+
+  .usage-stats-container {
+    @apply relative text-white px-6 pb-2;
+    /* Tablet & Desktop - Reduced bottom padding to close gap */
+    @apply md:px-8 md:pb-3 lg:px-12 lg:pb-4;
+  }
+
+  .usage-stats-card {
+    @apply relative p-3 bg-white/10 rounded-xl backdrop-blur-sm;
+    /* Tablet & Desktop */
+    @apply md:p-4 lg:p-5;
+  }
+
+  .usage-stats-label {
+    @apply text-xs text-white/90 mb-2;
+    /* Tablet & Desktop */
+    @apply md:text-sm lg:text-base md:mb-3;
+  }
+
+  .usage-stats-bar-container {
+    @apply flex items-center gap-2;
+    /* Tablet & Desktop */
+    @apply md:gap-3 lg:gap-4;
+  }
+
+  .usage-stats-bar {
+    @apply flex-1 bg-white/20 rounded-full h-2;
+    /* Tablet & Desktop */
+    @apply md:h-3 lg:h-3;
+  }
+
+  .usage-stats-fill {
+    @apply bg-white rounded-full h-2 transition-all;
+    /* Tablet & Desktop */
+    @apply md:h-3 lg:h-3;
+  }
+
+  .usage-stats-text {
+    @apply text-xs text-white/90;
+    /* Tablet & Desktop */
+    @apply md:text-sm lg:text-base;
+  }
+}

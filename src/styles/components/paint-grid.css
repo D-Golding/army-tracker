@@ -1,0 +1,94 @@
+/* src/styles/components/paint-grid.css - Responsive paint grid system */
+
+@layer components {
+  /* ========================================
+     PAINT GRID CONTAINER - Follows existing responsive pattern
+  ======================================== */
+
+  .paint-grid-container {
+    @apply mx-4;
+    /* Tablet & Desktop - Match existing container widths but expand for grid */
+    @apply md:mx-auto md:max-w-4xl lg:max-w-5xl xl:max-w-6xl;
+    /* 17" Monitor Max (1920px) - ensure we don't exceed */
+    max-width: min(100vw - 2rem, 1400px);
+  }
+
+  /* ========================================
+     PAINT GRID SYSTEM
+  ======================================== */
+
+  .paint-grid {
+    @apply grid gap-4;
+    /* Mobile: 1 column */
+    grid-template-columns: 1fr;
+    /* Tablet: 2 columns */
+    @apply md:grid-cols-2 md:gap-5;
+    /* Desktop: 3 columns */
+    @apply lg:grid-cols-3 lg:gap-6;
+    /* Large Desktop (15"+ screens): 4 columns */
+    @apply xl:grid-cols-4 xl:gap-6;
+  }
+
+  /* ========================================
+     PAINT CARD RESPONSIVE ADJUSTMENTS
+  ======================================== */
+
+  .paint-card {
+    @apply w-full;
+    /* Ensure cards don't get too wide on very large screens */
+    max-width: 100%;
+  }
+
+  .paint-card-content {
+    @apply h-full flex flex-col;
+  }
+
+  /* ========================================
+     GRID LOADING STATE
+  ======================================== */
+
+  .paint-grid-loading {
+    @apply paint-grid;
+  }
+
+  .paint-grid-loading-item {
+    @apply card-base card-padding animate-pulse;
+    min-height: 200px;
+  }
+
+  .paint-grid-loading-content {
+    @apply space-y-3;
+  }
+
+  .paint-grid-loading-title {
+    @apply h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4;
+  }
+
+  .paint-grid-loading-subtitle {
+    @apply h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2;
+  }
+
+  .paint-grid-loading-bar {
+    @apply h-2 bg-gray-200 dark:bg-gray-700 rounded w-full mt-4;
+  }
+
+  /* ========================================
+     EMPTY STATE IN GRID
+  ======================================== */
+
+  .paint-grid-empty {
+    @apply col-span-full empty-state;
+    /* Responsive column spanning */
+    @apply md:col-span-2 lg:col-span-3 xl:col-span-4;
+  }
+
+  /* ========================================
+     LOAD MORE BUTTON IN GRID CONTEXT
+  ======================================== */
+
+  .paint-grid-load-more {
+    @apply col-span-full flex justify-center mt-6 mb-4;
+    /* Responsive column spanning */
+    @apply md:col-span-2 lg:col-span-3 xl:col-span-4;
+  }
+}

@@ -1,0 +1,27 @@
+/* src/styles/components/progress.css - Progress and level system */
+
+@layer components {
+  /* ========================================
+     PROGRESS BAR SYSTEM
+  ======================================== */
+
+  .progress-bar {
+    @apply flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2;
+  }
+
+  .progress-fill {
+    @apply h-2 rounded-full transition-all;
+  }
+
+  .progress-high {
+    @apply progress-fill bg-gradient-to-r from-emerald-500 to-emerald-400;
+  }
+
+  .progress-medium {
+    @apply progress-fill bg-gradient-to-r from-amber-500 to-amber-400;
+  }
+
+  .progress-low {
+    @apply progress-fill bg-gradient-to-r from-red-500 to-red-400;
+  }
+}

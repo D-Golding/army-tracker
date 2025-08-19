@@ -1,0 +1,15 @@
+/* src/styles/utilities/loading.css - Loading states */
+
+@layer components {
+  /* ========================================
+     LOADING STATES
+  ======================================== */
+
+  .loading-spinner {
+    @apply w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin;
+  }
+
+  .loading-spinner-primary {
+    @apply w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin;
+  }
+}

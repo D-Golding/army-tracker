@@ -1,4 +1,4 @@
-// components/PaintList.jsx - Updated with pagination support
+// components/PaintList.jsx - Updated with responsive grid system
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Plus, Info, Trash2, X, ChevronUp, Zap, MoreHorizontal } from 'lucide-react';
 import PaintCard from './PaintCard';
@@ -52,7 +52,7 @@ const PaintList = () => {
     });
   };
 
-  // Get paginated paint data - UPDATED TO USE PAGINATION
+  // Get paginated paint data
   const basicFilter = activeFilters.basicFilter || 'all';
   const {
     paints: allPaginatedPaints,
@@ -108,9 +108,7 @@ const PaintList = () => {
   // Handle filter clicks from summary cards
   const handleSummaryFilterClick = (filterType) => {
     let newFilters = { ...activeFilters };
-
     newFilters.basicFilter = newFilters.basicFilter === filterType ? 'all' : filterType;
-
     setActiveFilters(newFilters);
   };
 
@@ -268,56 +266,58 @@ const PaintList = () => {
         onFilterClick={handleSummaryFilterClick}
       />
 
-      {/* Action Buttons Row */}
-      <div className="flex gap-3 mb-4">
-        {/* Add Paint Button - Changes based on limit */}
-        <button
-          onClick={handleAddPaintClick}
-          disabled={isOperationLoading}
-          className="btn-md flex-1 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg transition-all"
-        >
-          {hasReachedPaintLimit ? (
-            <>
-              <Zap className="inline-block mr-2" size={20} />
-              Upgrade to add more ({totalPaintsCount}/{paintLimit})
-            </>
-          ) : showAddForm ? (
-            <>
-              <X className="inline-block mr-2" size={20} />
-              Cancel
-            </>
-          ) : (
-            <>
-              <Plus className="inline-block mr-2" size={20} />
-              Add New Paint ({totalPaintsCount}/{paintLimit})
-            </>
-          )}
-        </button>
+      {/* Action Buttons Row - With Container */}
+      <div className="paint-actions-container">
+        <div className="flex gap-3 mb-4">
+          {/* Add Paint Button - Changes based on limit */}
+          <button
+            onClick={handleAddPaintClick}
+            disabled={isOperationLoading}
+            className="btn-md flex-1 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg transition-all"
+          >
+            {hasReachedPaintLimit ? (
+              <>
+                <Zap className="inline-block mr-2" size={20} />
+                Upgrade to add more ({totalPaintsCount}/{paintLimit})
+              </>
+            ) : showAddForm ? (
+              <>
+                <X className="inline-block mr-2" size={20} />
+                Cancel
+              </>
+            ) : (
+              <>
+                <Plus className="inline-block mr-2" size={20} />
+                Add New Paint ({totalPaintsCount}/{paintLimit})
+              </>
+            )}
+          </button>
 
-        {/* Delete Multiple Button */}
-        {bulkDeleteMode ? (
-          <button
-            onClick={toggleBulkDeleteMode}
-            className="p-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
-            title="Cancel selection"
-          >
-            <X size={20} />
-          </button>
-        ) : (
-          <button
-            onClick={toggleBulkDeleteMode}
-            disabled={isOperationLoading || filteredPaints.length === 0}
-            className="p-3 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors disabled:opacity-50"
-            title="Delete multiple paints"
-          >
-            <Trash2 size={20} />
-          </button>
-        )}
+          {/* Delete Multiple Button */}
+          {bulkDeleteMode ? (
+            <button
+              onClick={toggleBulkDeleteMode}
+              className="p-3 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
+              title="Cancel selection"
+            >
+              <X size={20} />
+            </button>
+          ) : (
+            <button
+              onClick={toggleBulkDeleteMode}
+              disabled={isOperationLoading || filteredPaints.length === 0}
+              className="p-3 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors disabled:opacity-50"
+              title="Delete multiple paints"
+            >
+              <Trash2 size={20} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Selection Controls - Sticky */}
       {bulkDeleteMode && (
-        <div className="sticky top-4 z-40 bg-gray-50 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-2xl p-4 mb-4 shadow-lg">
+        <div className="sticky top-4 z-40 bg-gray-50 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-2xl p-4 mb-4 shadow-lg paint-actions-container">
           <div className="flex items-center justify-between mb-3">
             <div className="text-gray-700 dark:text-gray-300 font-medium">
               {selectedPaints.size} paint{selectedPaints.size !== 1 ? 's' : ''} selected
@@ -355,11 +355,13 @@ const PaintList = () => {
 
       {/* Add Paint Form - Only show if not at limit */}
       {showAddForm && !hasReachedPaintLimit && (
-        <AddPaintForm
-          onAddPaint={handleAddPaint}
-          loading={isOperationLoading}
-          onCancel={() => setShowAddForm(false)}
-        />
+        <div className="paint-actions-container">
+          <AddPaintForm
+            onAddPaint={handleAddPaint}
+            loading={isOperationLoading}
+            onCancel={() => setShowAddForm(false)}
+          />
+        </div>
       )}
 
       {/* Integrated Search and Filter Component */}
@@ -370,86 +372,100 @@ const PaintList = () => {
 
       {/* Filter Results Summary */}
       {totalPaintsCount > 0 && (
-        <div className="mb-4 flex justify-between items-center">
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            {getFilterSummary(activeFilters, filteredPaints.length, allPaginatedPaints.length)}
+        <div className="paint-actions-container">
+          <div className="mb-4 flex justify-between items-center">
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              {getFilterSummary(activeFilters, filteredPaints.length, allPaginatedPaints.length)}
+            </div>
+            <button
+              onClick={() => setShowDisclaimer(true)}
+              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              title="Paint reference disclaimer"
+            >
+              <Info size={16} className="w-4 h-4 border border-current rounded-full" />
+            </button>
           </div>
-          <button
-            onClick={() => setShowDisclaimer(true)}
-            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-            title="Paint reference disclaimer"
-          >
-            <Info size={16} className="w-4 h-4 border border-current rounded-full" />
-          </button>
         </div>
       )}
 
       {/* Loading State */}
       {isLoading ? (
-        <div className="text-center py-8">
-          <div className="loading-spinner-primary mx-auto mb-4"></div>
-          <div className="text-gray-600 dark:text-gray-400">Loading paints...</div>
+        <div className="paint-grid-container">
+          <div className="paint-grid-loading">
+            {[...Array(8)].map((_, index) => (
+              <div key={index} className="paint-grid-loading-item">
+                <div className="paint-grid-loading-content">
+                  <div className="paint-grid-loading-title"></div>
+                  <div className="paint-grid-loading-subtitle"></div>
+                  <div className="paint-grid-loading-bar"></div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       ) : (
         <>
-          {/* Paint Cards */}
-          <div className="space-y-4">
-            {filteredPaints.map((paint) => (
-              <PaintCard
-                key={paint.id}
-                paint={paint}
-                onRefill={handleRefill}
-                onReducePaint={handleReducePaint}
-                onMoveToCollection={handleMoveToCollection}
-                onMoveToWishlist={handleMoveToWishlist}
-                onMoveToListed={handleMoveToListed}
-                onDelete={handleDelete}
-                onProjectsUpdated={handleProjectsUpdated}
-                disabled={isOperationLoading}
-                // Bulk delete props
-                bulkDeleteMode={bulkDeleteMode}
-                isSelected={selectedPaints.has(paint.name)}
-                onToggleSelection={() => togglePaintSelection(paint.name)}
-              />
-            ))}
+          {/* Paint Cards Grid */}
+          <div className="paint-grid-container">
+            <div className="paint-grid">
+              {filteredPaints.map((paint) => (
+                <div key={paint.id} className="paint-card">
+                  <PaintCard
+                    paint={paint}
+                    onRefill={handleRefill}
+                    onReducePaint={handleReducePaint}
+                    onMoveToCollection={handleMoveToCollection}
+                    onMoveToWishlist={handleMoveToWishlist}
+                    onMoveToListed={handleMoveToListed}
+                    onDelete={handleDelete}
+                    onProjectsUpdated={handleProjectsUpdated}
+                    disabled={isOperationLoading}
+                    // Bulk delete props
+                    bulkDeleteMode={bulkDeleteMode}
+                    isSelected={selectedPaints.has(paint.name)}
+                    onToggleSelection={() => togglePaintSelection(paint.name)}
+                  />
+                </div>
+              ))}
+
+              {/* Load More Button */}
+              {hasNextPage && !bulkDeleteMode && (
+                <div className="paint-grid-load-more">
+                  <button
+                    onClick={fetchNextPage}
+                    disabled={isFetchingNextPage || isOperationLoading}
+                    className="btn-primary btn-md px-8"
+                  >
+                    {isFetchingNextPage ? (
+                      <>
+                        <div className="loading-spinner mr-2"></div>
+                        Loading more...
+                      </>
+                    ) : (
+                      <>
+                        <MoreHorizontal className="inline-block mr-2" size={20} />
+                        Load More Paints
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* Empty State */}
+              {filteredPaints.length === 0 && allPaginatedPaints.length > 0 && (
+                <div className="paint-grid-empty">
+                  No paints match your current filters. Try adjusting your search criteria.
+                </div>
+              )}
+
+              {/* No paints at all */}
+              {allPaginatedPaints.length === 0 && (
+                <div className="paint-grid-empty">
+                  No paints found. Add your first paint to get started!
+                </div>
+              )}
+            </div>
           </div>
-
-          {/* Load More Button - NEW */}
-          {hasNextPage && !bulkDeleteMode && (
-            <div className="text-center mt-6 mb-4">
-              <button
-                onClick={fetchNextPage}
-                disabled={isFetchingNextPage || isOperationLoading}
-                className="btn-primary btn-md px-8"
-              >
-                {isFetchingNextPage ? (
-                  <>
-                    <div className="loading-spinner mr-2"></div>
-                    Loading more...
-                  </>
-                ) : (
-                  <>
-                    <MoreHorizontal className="inline-block mr-2" size={20} />
-                    Load More Paints
-                  </>
-                )}
-              </button>
-            </div>
-          )}
-
-          {/* Empty State */}
-          {filteredPaints.length === 0 && allPaginatedPaints.length > 0 && (
-            <div className="empty-state">
-              No paints match your current filters. Try adjusting your search criteria.
-            </div>
-          )}
-
-          {/* No paints at all */}
-          {allPaginatedPaints.length === 0 && (
-            <div className="empty-state">
-              No paints found. Add your first paint to get started!
-            </div>
-          )}
         </>
       )}
 

@@ -1,0 +1,41 @@
+/* src/styles/base/layout.css - Proper enterprise layout structure */
+
+@layer components {
+  /* ========================================
+     APP WRAPPER - Top Level
+  ======================================== */
+
+  .app-wrapper {
+    @apply min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors;
+  }
+
+  /* ========================================
+     MAIN CONTENT CONTAINER - Constrained Width
+  ======================================== */
+
+  .main-content-container {
+    @apply max-w-md mx-auto bg-gray-50 dark:bg-gray-900 min-h-screen flex flex-col relative;
+    /* Tablet & Desktop */
+    @apply md:max-w-4xl lg:max-w-6xl xl:max-w-7xl;
+    /* 17" Monitor Max (1920px) */
+    max-width: min(100vw, 1920px);
+  }
+
+  .main-content {
+    @apply flex-1 p-4 pt-6;
+    /* Tablet & Desktop */
+    @apply md:p-6 md:pt-8 lg:p-8 lg:pt-10;
+  }
+
+  /* ========================================
+     LEGACY CONTAINERS (Keep for other components)
+  ======================================== */
+
+  .container-mobile {
+    @apply max-w-md mx-auto px-4;
+  }
+
+  .container-desktop {
+    @apply max-w-6xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+}

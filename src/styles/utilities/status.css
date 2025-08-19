@@ -1,0 +1,31 @@
+/* src/styles/utilities/status.css - Status system */
+
+@layer components {
+  /* ========================================
+     STATUS SYSTEM
+  ======================================== */
+
+  .status-upcoming {
+    @apply badge-blue;
+  }
+
+  .status-started {
+    @apply badge-warning;
+  }
+
+  .status-completed {
+    @apply badge-secondary;
+  }
+
+  .status-collection {
+    @apply badge-secondary;
+  }
+
+  .status-wishlist {
+    @apply badge-pink;
+  }
+
+  .status-listed {
+    @apply badge-tertiary;
+  }
+}

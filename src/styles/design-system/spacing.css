@@ -1,0 +1,25 @@
+/* src/styles/design-system/spacing.css - Spacing system */
+
+@layer components {
+  /* ========================================
+     SPACING UTILITIES
+  ======================================== */
+
+  /* Currently using Tailwind's built-in spacing classes */
+  /* Add custom spacing classes here as needed */
+
+  /* Example custom spacing classes for future use: */
+  /*
+  .space-section {
+    @apply py-16 md:py-24 lg:py-32;
+  }
+
+  .space-component {
+    @apply py-8 md:py-12 lg:py-16;
+  }
+
+  .space-element {
+    @apply py-4 md:py-6 lg:py-8;
+  }
+  */
+}

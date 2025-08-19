@@ -1,0 +1,37 @@
+/* src/styles/components/navigation.css - Navigation as content component */
+
+@layer components {
+  /* ========================================
+     NAVIGATION CONTAINER - Content Area
+  ======================================== */
+
+  .navigation-container {
+    @apply bg-white dark:bg-gray-800 mx-4 mt-6 rounded-xl shadow-lg relative z-10 border border-gray-100 dark:border-gray-700;
+    /* Tablet & Desktop - Constrain width and add proper spacing */
+    @apply md:mx-auto md:max-w-3xl md:mt-8 lg:max-w-4xl lg:mt-10;
+  }
+
+  .navigation-grid {
+    @apply grid grid-cols-2 divide-x divide-y divide-gray-200 dark:divide-gray-600;
+    /* Tablet & Desktop */
+    @apply md:grid-cols-4 md:divide-y-0;
+  }
+
+  /* ========================================
+     NAVIGATION TAB SYSTEM
+  ======================================== */
+
+  .nav-tab {
+    @apply flex-1 py-4 px-4 rounded-xl font-semibold text-sm transition-all;
+    /* Tablet & Desktop */
+    @apply md:py-3 md:px-6 md:text-base lg:py-4 lg:px-8 lg:text-lg;
+  }
+
+  .nav-tab-active {
+    @apply nav-tab gradient-primary text-white shadow-lg;
+  }
+
+  .nav-tab-inactive {
+    @apply nav-tab text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white;
+  }
+}

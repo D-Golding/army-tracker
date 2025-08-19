@@ -1,0 +1,23 @@
+/* src/styles/utilities/carousel.css - Carousel and slider utilities */
+
+@layer components {
+  /* ========================================
+     CAROUSEL/SLIDER
+  ======================================== */
+
+  .carousel-nav-button {
+    @apply p-3 rounded-full bg-white shadow-md hover:shadow-lg transition-all;
+  }
+
+  .carousel-dot {
+    @apply w-2 h-2 rounded-full transition-colors;
+  }
+
+  .carousel-dot-active {
+    @apply carousel-dot bg-indigo-600;
+  }
+
+  .carousel-dot-inactive {
+    @apply carousel-dot bg-gray-300;
+  }
+}

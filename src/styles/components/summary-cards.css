@@ -1,0 +1,76 @@
+/* src/styles/components/summary-cards.css - Summary card system */
+
+@layer components {
+  /* ========================================
+     SUMMARY CARDS CONTAINER - Also used for search and buttons
+  ======================================== */
+
+  .summary-cards-container {
+    @apply mx-4;
+    /* Tablet & Desktop - Match navigation container width exactly */
+    @apply md:mx-auto md:max-w-2xl lg:max-w-3xl;
+  }
+
+  /* Also use this class for paint search and action buttons */
+  .paint-search-container {
+    @apply mx-4;
+    @apply md:mx-auto md:max-w-2xl lg:max-w-3xl;
+  }
+
+  .paint-actions-container {
+    @apply mx-4;
+    @apply md:mx-auto md:max-w-2xl lg:max-w-3xl;
+  }
+
+  /* ========================================
+     SUMMARY CARDS
+  ======================================== */
+
+  .summary-card {
+    @apply card-base card-padding-sm;
+  }
+
+  .summary-card-emerald {
+    @apply summary-card border-t-4 border-emerald-500;
+  }
+
+  .summary-card-blue {
+    @apply summary-card border-t-4 border-blue-500;
+  }
+
+  .summary-card-purple {
+    @apply summary-card border-t-4 border-purple-500;
+  }
+
+  .summary-card-amber {
+    @apply summary-card border-t-4 border-amber-500;
+  }
+
+  /* ========================================
+     SUMMARY VALUES
+  ======================================== */
+
+  .summary-value {
+    @apply text-2xl font-bold;
+  }
+
+  .summary-value-emerald {
+    @apply summary-value text-emerald-600 dark:text-emerald-400;
+  }
+
+  .summary-value-blue {
+    @apply summary-value text-blue-600 dark:text-blue-400;
+  }
+
+  .summary-value-purple {
+    @apply summary-value text-purple-600 dark:text-purple-400;
+  }
+
+  .summary-value-amber {
+    @apply summary-value text-amber-600 dark:text-amber-400;
+  }
+
+  .summary-label {
+    @apply text-xs text-gray-600 dark:text-gray-400 font-medium uppercase tracking-wide;
+  }
+}

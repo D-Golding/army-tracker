@@ -1,0 +1,76 @@
+/* src/styles/components/drag-system.css - Mobile and desktop drag system */
+
+@layer components {
+  /* ========================================
+     MOBILE DRAG SYSTEM
+  ======================================== */
+
+  .mobile-drag-placeholder {
+    @apply bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl transition-all opacity-50;
+    height: 80px;
+  }
+
+  .mobile-drag-item {
+    @apply transition-transform duration-200 ease-out;
+  }
+
+  .mobile-drag-item.dragging {
+    @apply z-[1000] transform scale-105 shadow-2xl;
+  }
+
+  .mobile-drag-item.shifting-up {
+    @apply transform -translate-y-20;
+  }
+
+  .mobile-drag-item.shifting-down {
+    @apply transform translate-y-20;
+  }
+
+  /* Smooth transitions for non-dragging items */
+  .steps-container .mobile-drag-item:not(.dragging) {
+    @apply transition-transform duration-300 ease-[cubic-bezier(0.2,0,0,1)];
+  }
+
+  /* ========================================
+     DESKTOP DRAG SYSTEM
+  ======================================== */
+
+  .desktop-drag-item {
+    @apply transition-all duration-200;
+  }
+
+  .desktop-drag-item:hover {
+    @apply border-gray-300 dark:border-gray-500;
+  }
+
+  .desktop-drag-item.drag-over {
+    @apply border-indigo-400 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20;
+  }
+
+  /* ========================================
+     DRAG HANDLES
+  ======================================== */
+
+  .drag-handle {
+    @apply cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors;
+  }
+
+  .drag-handle:active {
+    @apply text-gray-700 dark:text-gray-200;
+  }
+
+  /* ========================================
+     MOBILE TOUCH IMPROVEMENTS
+  ======================================== */
+
+  .mobile-touch-target {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+
+  /* Prevent text selection during drag */
+  .drag-active {
+    @apply select-none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+}

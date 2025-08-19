@@ -1,0 +1,19 @@
+/* src/styles/utilities/tiers.css - Tier-specific utilities */
+
+@layer components {
+  /* ========================================
+     TIER-SPECIFIC UTILITIES
+  ======================================== */
+
+  /* These classes are already defined in colors.css */
+  /* Kept here for reference and future tier-specific utilities */
+
+  /*
+  .tier-free { @apply bg-gradient-to-r from-gray-500 to-gray-600; }
+  .tier-casual { @apply bg-gradient-to-r from-blue-500 to-blue-600; }
+  .tier-pro { @apply bg-gradient-to-r from-purple-500 to-purple-600; }
+  .tier-battle { @apply bg-gradient-to-r from-amber-500 to-amber-600; }
+  */
+
+  /* Add tier-specific utility classes here as needed */
+}
