@@ -1,7 +1,7 @@
 // components/paints/PaintList/components/PaintListHeader.jsx
 import React from 'react';
 import { Plus, X, Trash2, Zap } from 'lucide-react';
-import SummaryCards from '../SummaryCards';
+import SummaryCards from '../summaryCards.jsx';
 
 const PaintListHeader = ({
   summary,
