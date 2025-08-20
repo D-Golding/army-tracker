@@ -1,6 +1,6 @@
 // components/PaintCard.jsx
 import React, { useState } from 'react';
-import { Droplet, Brush, Trash2, Minus, Heart, Check, Plus, MoreVertical, FolderPlus } from 'lucide-react';
+import { RotateCcw, Brush, Trash2, Minus, Heart, Check, Plus, MoreVertical, FolderPlus } from 'lucide-react';
 import AddPaintToProjectModal from '../paints/AddPaintToProjectModal.jsx';
 import PaintProjectsModal from '../paints/PaintProjectsModal.jsx';
 
@@ -23,9 +23,9 @@ const PaintCard = ({
  const [showProjectsModal, setShowProjectsModal] = useState(false);
 
  const getLevelColor = (level) => {
-   if (level > 50) return 'bg-gradient-to-r from-emerald-500 to-emerald-400';
-   if (level > 25) return 'bg-gradient-to-r from-amber-500 to-amber-400';
-   return 'bg-gradient-to-r from-red-500 to-red-400';
+   if (level > 50) return 'progress-high';
+   if (level > 25) return 'progress-medium';
+   return 'progress-low';
  };
 
  // Handle project updates
@@ -74,21 +74,21 @@ const PaintCard = ({
 
  return (
    <>
-     <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border overflow-hidden transition-all ${
+     <div className={`card-base transition-all h-full flex flex-col ${
        bulkDeleteMode && isSelected 
          ? 'border-red-500 dark:border-red-400 ring-2 ring-red-200 dark:ring-red-900/50' 
-         : 'border-gray-100 dark:border-gray-700'
+         : 'hover:shadow-lg'
      }`}>
 
        {/* Bulk Delete Checkbox - Only show in bulk delete mode */}
        {bulkDeleteMode && (
-         <div className="bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800 px-5 py-3">
+         <div className="bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800 px-5 py-3 flex-shrink-0">
            <label className="flex items-center gap-3 cursor-pointer">
              <input
                type="checkbox"
                checked={isSelected}
                onChange={onToggleSelection}
-               className="w-5 h-5 rounded border-red-300 text-red-600 focus:ring-red-500"
+               className="form-checkbox w-5 h-5 border-red-300 text-red-600 focus:ring-red-500"
              />
              <span className="text-sm font-medium text-red-800 dark:text-red-300">
                {isSelected ? 'Selected for deletion' : 'Select for deletion'}
@@ -98,29 +98,29 @@ const PaintCard = ({
        )}
 
        {/* Paint Header */}
-       <div className="p-5 pb-0">
+       <div className="card-padding flex-1 flex flex-col">
          <div className="flex justify-between items-start mb-3">
-           <div>
-             <h3 className="font-bold text-lg text-gray-900 dark:text-white">{paint.name}</h3>
+           <div className="flex-1 min-w-0">
+             <h3 className="font-bold text-lg text-gray-900 dark:text-white truncate">{paint.name}</h3>
              <p className="text-gray-600 dark:text-gray-400 text-sm">
                {paint.brand} • {paint.type}
                {paint.colour && ` • ${paint.colour}`}
              </p>
            </div>
-           <div className="flex flex-col gap-1 items-end">
+           <div className="flex flex-col gap-1 items-end flex-shrink-0 ml-3">
              {paint.colour && (
-               <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 text-xs rounded-lg font-medium">
+               <span className="badge-tertiary">
                  {paint.colour}
                </span>
              )}
              {paint.airbrush && (
-               <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs rounded-lg font-medium">
+               <span className="badge-blue">
                  <Brush className="inline-block mr-1" size={10} />
                  Airbrush
                </span>
              )}
              {paint.sprayPaint && (
-               <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 text-xs rounded-lg font-medium">
+               <span className="badge-purple">
                  Spray
                </span>
              )}
@@ -158,7 +158,7 @@ const PaintCard = ({
 
          {/* Project Usage Display */}
          {projectCount > 0 && (
-           <div className="mb-4 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
+           <div className="mb-4 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800 flex-shrink-0">
              <div className="flex justify-between items-center">
                <div className="text-sm text-indigo-700 dark:text-indigo-300">
                  Used in: {projectCount} project{projectCount !== 1 ? 's' : ''}
@@ -166,7 +166,7 @@ const PaintCard = ({
                {!bulkDeleteMode && (
                  <button
                    onClick={handleShowProjects}
-                   className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+                   className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex-shrink-0"
                  >
                    See all +
                  </button>
@@ -177,7 +177,7 @@ const PaintCard = ({
 
          {/* Level Progress with Controls - Only show for collection paints and not in bulk delete mode */}
          {paint.status === 'collection' && !bulkDeleteMode && (
-           <div className="mb-4">
+           <div className="mb-4 flex-shrink-0">
              <div className="flex justify-between items-center mb-2">
                <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">Level</span>
                <span className="text-sm font-bold text-gray-900 dark:text-white">{paint.level}%</span>
@@ -185,23 +185,23 @@ const PaintCard = ({
              <div className="flex items-center gap-2">
                <button
                  onClick={() => onReducePaint(paint.name)}
-                 className="px-2 py-1 bg-gradient-to-r from-orange-600 to-orange-500 text-white text-xs font-semibold rounded-lg active:scale-95 transition-transform"
+                 className="px-2 py-1 bg-gradient-to-r from-orange-600 to-orange-500 text-white text-xs font-semibold rounded-lg active:scale-95 transition-transform flex-shrink-0"
                  title="Use Paint (-10%)"
                >
                  <Minus size={12} />
                </button>
-               <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+               <div className="progress-bar">
                  <div
-                   className={`h-2 rounded-full transition-all ${getLevelColor(paint.level)}`}
+                   className={`progress-fill ${getLevelColor(paint.level)}`}
                    style={{ width: `${paint.level}%` }}
                  ></div>
                </div>
                <button
                  onClick={() => onRefill(paint.name)}
-                 className="px-2 py-1 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white text-xs font-semibold rounded-lg active:scale-95 transition-transform"
+                 className="px-2 py-1 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white text-xs font-semibold rounded-lg active:scale-95 transition-transform flex-shrink-0"
                  title="Refill to 100%"
                >
-                 <Droplet size={12} />
+                 <RotateCcw size={12} />
                </button>
              </div>
            </div>
@@ -209,15 +209,15 @@ const PaintCard = ({
 
          {/* Wishlist message and actions - Hide in bulk delete mode */}
          {paint.status === 'wishlist' && !bulkDeleteMode && (
-           <div className="mb-4 p-3 bg-pink-50 dark:bg-pink-900/20 rounded-lg border border-pink-200 dark:border-pink-800">
-             <div className="flex justify-between items-center">
+           <div className="mb-4 p-3 bg-pink-50 dark:bg-pink-900/20 rounded-lg border border-pink-200 dark:border-pink-800 flex-shrink-0">
+             <div className="flex flex-col gap-3">
                <p className="text-sm text-pink-700 dark:text-pink-300 italic">
                  On your wishlist
                </p>
-               <div className="flex gap-2">
+               <div className="flex gap-2 flex-wrap">
                  <button
                    onClick={() => onMoveToCollection(paint.name)}
-                   className="px-3 py-1 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white text-xs font-semibold rounded-lg active:scale-95 transition-transform flex items-center gap-1"
+                   className="btn-sm gradient-secondary text-white flex items-center gap-1"
                    title="Add to Collection"
                  >
                    <Plus size={12} />
@@ -225,7 +225,7 @@ const PaintCard = ({
                  </button>
                  <button
                    onClick={() => onMoveToListed(paint.name)}
-                   className="px-3 py-1 bg-gradient-to-r from-gray-600 to-gray-500 text-white text-xs font-semibold rounded-lg active:scale-95 transition-transform"
+                   className="btn-sm gradient-tertiary text-white"
                    title="Remove from Wishlist"
                  >
                    Remove
@@ -237,74 +237,77 @@ const PaintCard = ({
 
          {/* Listed message - Hide in bulk delete mode */}
          {paint.status === 'listed' && !bulkDeleteMode && (
-           <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+           <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 flex-shrink-0">
              <p className="text-sm text-gray-600 dark:text-gray-400 italic">
                Paint reference - use the buttons above to add to collection or wishlist
              </p>
            </div>
          )}
-       </div>
 
-       {/* Action Buttons - Hide in bulk delete mode */}
-       {!bulkDeleteMode && (
-         <div className="p-5 pt-0 flex gap-2 justify-end">
-           {/* Add to Project Button - Always visible */}
-           <button
-             onClick={handleAddToProject}
-             className="btn-primary btn-sm"
-             title="Add to project"
-           >
-             Add to project +
-           </button>
+         {/* Spacer to push action buttons to bottom */}
+         <div className="flex-1"></div>
 
-           {/* More actions dropdown */}
-           <div className="relative">
+         {/* Action Buttons - Hide in bulk delete mode */}
+         {!bulkDeleteMode && (
+           <div className="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700 mt-4">
+             {/* Add to Project Button - Always visible */}
              <button
-               onClick={() => setShowDropdown(!showDropdown)}
-               className="px-3 py-2 bg-gradient-to-r from-gray-600 to-gray-500 text-white text-sm font-semibold rounded-xl active:scale-95 transition-transform"
-               title="More actions"
+               onClick={handleAddToProject}
+               className="btn-primary btn-sm flex-1"
+               title="Add to project"
              >
-               <MoreVertical size={14} />
+               Add to project +
              </button>
 
-             {showDropdown && (
-               <div className="absolute right-0 bottom-full mb-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-10 min-w-48">
-                 {/* Only show "Remove from Collection" for collection paints */}
-                 {paint.status === 'collection' && (
+             {/* More actions dropdown */}
+             <div className="relative">
+               <button
+                 onClick={() => setShowDropdown(!showDropdown)}
+                 className="btn-sm gradient-tertiary text-white"
+                 title="More actions"
+               >
+                 <MoreVertical size={14} />
+               </button>
+
+               {showDropdown && (
+                 <div className="dropdown-menu right-0 bottom-full mb-2 min-w-48">
+                   {/* Only show "Remove from Collection" for collection paints */}
+                   {paint.status === 'collection' && (
+                     <button
+                       onClick={() => {
+                         onMoveToListed(paint.name);
+                         setShowDropdown(false);
+                       }}
+                       className="dropdown-item rounded-t-xl"
+                     >
+                       Remove from Collection
+                     </button>
+                   )}
                    <button
                      onClick={() => {
-                       onMoveToListed(paint.name);
+                       onDelete(paint.name);
                        setShowDropdown(false);
                      }}
-                     className="w-full px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-t-xl"
+                     className={`dropdown-item-danger ${
+                       paint.status === 'collection' ? 'rounded-b-xl' : 'rounded-xl'
+                     }`}
                    >
-                     Remove from Collection
+                     Delete
                    </button>
-                 )}
-                 <button
-                   onClick={() => {
-                     onDelete(paint.name);
-                     setShowDropdown(false);
-                   }}
-                   className={`w-full px-4 py-3 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 ${
-                     paint.status === 'collection' ? 'rounded-b-xl' : 'rounded-xl'
-                   }`}
-                 >
-                   Delete
-                 </button>
-               </div>
-             )}
+                 </div>
+               )}
 
-             {/* Backdrop to close dropdown */}
-             {showDropdown && (
-               <div
-                 className="fixed inset-0 z-0"
-                 onClick={() => setShowDropdown(false)}
-               />
-             )}
+               {/* Backdrop to close dropdown */}
+               {showDropdown && (
+                 <div
+                   className="dropdown-backdrop"
+                   onClick={() => setShowDropdown(false)}
+                 />
+               )}
+             </div>
            </div>
-         </div>
-       )}
+         )}
+       </div>
      </div>
 
      {/* Add to Project Modal */}
