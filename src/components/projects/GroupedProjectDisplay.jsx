@@ -1,4 +1,4 @@
-// components/projects/GroupedProjectDisplay.jsx - Display projects in groups
+// components/projects/GroupedProjectDisplay.jsx - Display projects in responsive grid
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import ProjectCard from './ProjectCard';
@@ -26,37 +26,39 @@ const GroupedProjectDisplay = ({
     setCollapsedGroups(newCollapsed);
   };
 
-  // If no grouping, show simple project list
+  // If no grouping, show simple project grid
   if (groupKey === 'none' || Object.keys(groupedProjects).length === 1) {
     const projects = Object.values(groupedProjects)[0] || [];
 
     if (projects.length === 0) {
       return (
-        <div className="empty-state">
+        <div className="project-grid-empty">
           {groupConfig.emptyMessage}
         </div>
       );
     }
 
     return (
-      <div className="space-y-4">
-        {projects.map((project) => (
-          <ProjectCard
-            key={project.id}
-            project={project}
-            onStatusUpdate={onStatusUpdate}
-            onDelete={onDelete}
-            onCheckPaints={onCheckPaints}
-            isLoading={isLoading}
-          />
-        ))}
+      <div className="project-grid-container">
+        <div className="project-grid">
+          {projects.map((project) => (
+            <ProjectCard
+              key={project.id}
+              project={project}
+              onStatusUpdate={onStatusUpdate}
+              onDelete={onDelete}
+              onCheckPaints={onCheckPaints}
+              isLoading={isLoading}
+            />
+          ))}
+        </div>
       </div>
     );
   }
 
   // Grouped display
   return (
-    <div className="space-y-6">
+    <div className="project-group-container">
       {Object.entries(groupedProjects).map(([groupName, projects]) => {
         const isCollapsed = collapsedGroups.has(groupName);
         const projectCount = projects.length;
@@ -66,7 +68,7 @@ const GroupedProjectDisplay = ({
 
             {/* Group Header */}
             <div
-              className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="project-group-header"
               onClick={() => toggleGroup(groupName)}
             >
               <div className="flex items-center gap-3">
@@ -96,25 +98,27 @@ const GroupedProjectDisplay = ({
               </div>
             </div>
 
-            {/* Projects List */}
+            {/* Projects Grid */}
             {!isCollapsed && (
-              <div className="space-y-4 ml-4">
-                {projects.length === 0 ? (
-                  <div className="text-center py-6 text-gray-500 dark:text-gray-400 text-sm">
-                    No projects in this group
-                  </div>
-                ) : (
-                  projects.map((project) => (
-                    <ProjectCard
-                      key={project.id}
-                      project={project}
-                      onStatusUpdate={onStatusUpdate}
-                      onDelete={onDelete}
-                      onCheckPaints={onCheckPaints}
-                      isLoading={isLoading}
-                    />
-                  ))
-                )}
+              <div className="project-grid-container">
+                <div className="project-grid">
+                  {projects.length === 0 ? (
+                    <div className="project-grid-empty">
+                      No projects in this group
+                    </div>
+                  ) : (
+                    projects.map((project) => (
+                      <ProjectCard
+                        key={project.id}
+                        project={project}
+                        onStatusUpdate={onStatusUpdate}
+                        onDelete={onDelete}
+                        onCheckPaints={onCheckPaints}
+                        isLoading={isLoading}
+                      />
+                    ))
+                  )}
+                </div>
               </div>
             )}
 

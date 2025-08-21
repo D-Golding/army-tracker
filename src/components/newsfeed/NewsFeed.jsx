@@ -1,4 +1,4 @@
-// components/newsfeed/NewsFeed.jsx - Main news feed component with infinite loading
+// components/newsfeed/NewsFeed.jsx - Main news feed component with global styling
 import React, { useState, useEffect } from 'react';
 import { Camera, RefreshCw, Users, AlertCircle, Loader2 } from 'lucide-react';
 import { useInView } from 'react-intersection-observer';
@@ -35,7 +35,7 @@ const NewsFeed = () => {
   // Check permissions first
   if (!permissions.canViewFeed) {
     return (
-      <div className="max-w-2xl mx-auto">
+      <div className="summary-cards-container">
         <div className="card-base card-padding text-center">
           <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
@@ -60,33 +60,29 @@ const NewsFeed = () => {
   // Loading state for initial load
   if (isLoading) {
     return (
-      <div className="max-w-2xl mx-auto">
+      <div className="tab-nav-container">
         <div className="space-y-6">
           {/* Create post placeholder */}
-          <div className="card-base card-padding">
-            <div className="animate-pulse">
-              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-4"></div>
-              <div className="h-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
-            </div>
+          <div className="skeleton-post">
+            <div className="skeleton-text-md w-1/4 mb-4"></div>
+            <div className="skeleton-text-lg h-20"></div>
           </div>
 
           {/* Post placeholders */}
           {[1, 2, 3].map(i => (
-            <div key={i} className="card-base card-padding">
-              <div className="animate-pulse">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
-                  <div className="space-y-2 flex-1">
-                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
-                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/6"></div>
-                  </div>
+            <div key={i} className="skeleton-post">
+              <div className="skeleton-post-header">
+                <div className="skeleton-avatar"></div>
+                <div className="space-y-2 flex-1">
+                  <div className="skeleton-text-md w-1/4"></div>
+                  <div className="skeleton-text-sm w-1/6"></div>
                 </div>
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-4"></div>
-                <div className="aspect-square bg-gray-200 dark:bg-gray-700 rounded-xl mb-4"></div>
-                <div className="flex gap-4">
-                  <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
-                  <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
-                </div>
+              </div>
+              <div className="skeleton-text-md w-3/4 mb-4"></div>
+              <div className="skeleton-image mb-4"></div>
+              <div className="flex gap-4">
+                <div className="skeleton-button w-16"></div>
+                <div className="skeleton-button w-20"></div>
               </div>
             </div>
           ))}
@@ -98,7 +94,7 @@ const NewsFeed = () => {
   // Error state
   if (isError) {
     return (
-      <div className="max-w-2xl mx-auto">
+      <div className="tab-nav-container">
         <div className="card-base card-padding text-center">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
@@ -130,7 +126,7 @@ const NewsFeed = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="tab-nav-container">
       <div className="space-y-6">
         {/* Create Post Section */}
         {permissions.canCreatePosts && (
@@ -141,7 +137,7 @@ const NewsFeed = () => {
               </div>
               <button
                 onClick={() => window.location.href = '/app/community/create'}
-                className="flex-1 text-left p-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-xl text-gray-600 dark:text-gray-400 transition-colors"
+                className="create-post-button"
               >
                 Share a photo of your latest work...
               </button>
@@ -152,11 +148,11 @@ const NewsFeed = () => {
         {/* Feed Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+            <h2 className="feed-header-title">
               Community Feed
             </h2>
             {totalPosts > 0 && (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="feed-header-subtitle">
                 {totalPosts} post{totalPosts !== 1 ? 's' : ''} loaded
               </p>
             )}
@@ -208,21 +204,19 @@ const NewsFeed = () => {
                   {isFetchingNextPage && (
                     <div className="space-y-4">
                       {[1, 2, 3].map(i => (
-                        <div key={i} className="card-base card-padding">
-                          <div className="animate-pulse">
-                            <div className="flex items-center gap-3 mb-4">
-                              <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
-                              <div className="space-y-2 flex-1">
-                                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
-                                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/6"></div>
-                              </div>
+                        <div key={i} className="skeleton-post">
+                          <div className="skeleton-post-header">
+                            <div className="skeleton-avatar"></div>
+                            <div className="space-y-2 flex-1">
+                              <div className="skeleton-text-md w-1/4"></div>
+                              <div className="skeleton-text-sm w-1/6"></div>
                             </div>
-                            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-4"></div>
-                            <div className="aspect-square bg-gray-200 dark:bg-gray-700 rounded-xl mb-4"></div>
-                            <div className="flex gap-4">
-                              <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
-                              <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
-                            </div>
+                          </div>
+                          <div className="skeleton-text-md w-3/4 mb-4"></div>
+                          <div className="skeleton-image mb-4"></div>
+                          <div className="flex gap-4">
+                            <div className="skeleton-button w-16"></div>
+                            <div className="skeleton-button w-20"></div>
                           </div>
                         </div>
                       ))}
@@ -231,10 +225,10 @@ const NewsFeed = () => {
                 </div>
               ) : (
                 <div className="text-center">
-                  <p className="text-gray-500 dark:text-gray-400 text-sm mb-2">
+                  <p className="feed-message-primary">
                     You've seen all recent posts
                   </p>
-                  <p className="text-gray-400 dark:text-gray-500 text-xs">
+                  <p className="feed-message-secondary">
                     Check back later for new content!
                   </p>
                 </div>
@@ -245,10 +239,10 @@ const NewsFeed = () => {
           // Empty state
           <div className="card-base card-padding text-center py-12">
             <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            <h3 className="feed-empty-title">
               No Posts Yet
             </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
+            <p className="feed-empty-text">
               Be the first to share your miniature painting progress with the community!
             </p>
             {permissions.canCreatePosts && (

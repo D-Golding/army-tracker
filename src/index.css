@@ -13,14 +13,22 @@
 @import './styles/components/forms.css';
 @import './styles/components/cards.css';
 @import './styles/components/navigation.css';
+@import './styles/components/tab-navigation.css';
+@import './styles/components/post-card.css';
+@import './styles/components/post-comments.css';
+@import './styles/components/photo-modal.css';
+@import './styles/components/create-post-page.css';
+@import './styles/components/my-posts-page.css';
 @import './styles/components/badges.css';
 @import './styles/components/dropdowns.css';
 @import './styles/components/progress.css';
 @import './styles/components/modals.css';
 @import './styles/components/paint-catalog.css';
 @import './styles/components/paint-grid.css';
+@import './styles/components/grids.css';
 @import './styles/components/drag-system.css';
 @import './styles/components/summary-cards.css';
+@import './styles/components/blog.css';
 
 /* Import vendor overrides */
 @import './styles/vendors/swiper.css';

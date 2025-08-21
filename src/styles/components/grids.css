@@ -1,0 +1,191 @@
+/* src/styles/components/grids.css - Responsive grid systems */
+
+@layer components {
+  /* ========================================
+     PROJECT GRID SYSTEM
+  ======================================== */
+
+  .project-grid-container {
+    @apply mx-4;
+    /* Tablet & Desktop - Match existing container widths */
+    @apply md:mx-auto md:max-w-4xl lg:max-w-5xl xl:max-w-6xl;
+    /* Ensure we don't exceed viewport width */
+    max-width: calc(100vw - 2rem);
+    box-sizing: border-box;
+  }
+
+  .project-grid {
+    @apply grid gap-4;
+    /* Mobile: 1 column */
+    grid-template-columns: 1fr;
+    /* Tablet: 2 columns */
+    @apply md:grid-cols-2 md:gap-5;
+    /* iPad Pro portrait: 3 columns */
+    @apply lg:grid-cols-3 lg:gap-6;
+    /* 16+ inch screens: 4 columns */
+    @apply xl:grid-cols-4 xl:gap-6;
+    /* Ensure grid doesn't exceed container */
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* ========================================
+     PROJECT CARD RESPONSIVE ADJUSTMENTS
+  ======================================== */
+
+  .project-card {
+    @apply w-full;
+    /* Ensure cards don't exceed their grid cell */
+    max-width: 100%;
+    box-sizing: border-box;
+    /* Prevent any overflow from card content */
+    overflow: hidden;
+  }
+
+  .project-card-content {
+    @apply h-full flex flex-col;
+    /* Ensure content doesn't exceed card */
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* ========================================
+     PROJECT GRID LOADING STATE
+  ======================================== */
+
+  .project-grid-loading {
+    @apply project-grid;
+  }
+
+  .project-grid-loading-item {
+    @apply card-base card-padding animate-pulse;
+    min-height: 300px;
+    /* Ensure loading items don't exceed grid cell */
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .project-grid-loading-content {
+    @apply space-y-3;
+    /* Ensure loading content fits within item */
+    max-width: 100%;
+  }
+
+  .project-grid-loading-image {
+    @apply aspect-video bg-gray-200 dark:bg-gray-700 rounded-xl mb-4;
+    /* Ensure image doesn't exceed container */
+    max-width: 100%;
+  }
+
+  .project-grid-loading-title {
+    @apply h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4;
+    /* Ensure title doesn't exceed container */
+    max-width: 100%;
+  }
+
+  .project-grid-loading-subtitle {
+    @apply h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2;
+    /* Ensure subtitle doesn't exceed container */
+    max-width: 100%;
+  }
+
+  .project-grid-loading-button {
+    @apply h-10 bg-gray-200 dark:bg-gray-700 rounded w-full mt-4;
+    /* Ensure button doesn't exceed container */
+    max-width: 100%;
+  }
+
+  /* ========================================
+     PROJECT GRID EMPTY STATE
+  ======================================== */
+
+  .project-grid-empty {
+    @apply col-span-full empty-state;
+    /* Responsive column spanning */
+    @apply md:col-span-2 lg:col-span-3 xl:col-span-4;
+    /* Ensure empty state doesn't exceed grid */
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* ========================================
+     PROJECT GRID GROUPED DISPLAY
+  ======================================== */
+
+  .project-group-container {
+    @apply space-y-6;
+    /* Ensure group container respects layout */
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .project-group-header {
+    @apply flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors;
+    /* Ensure header doesn't exceed container */
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .project-group-content {
+    @apply project-grid;
+    /* Add left margin for grouped display indentation */
+    @apply ml-4;
+    /* Adjust max-width to account for margin */
+    max-width: calc(100% - 1rem);
+  }
+
+  /* ========================================
+     PROJECT GRID UTILITIES
+  ======================================== */
+
+  /* Single column fallback for very narrow screens */
+  @media (max-width: 320px) {
+    .project-grid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .project-group-content {
+      margin-left: 0.5rem;
+      max-width: calc(100% - 0.5rem);
+    }
+  }
+
+  /* Enhanced spacing for larger screens */
+  @media (min-width: 1920px) {
+    .project-grid {
+      gap: 2rem;
+    }
+  }
+
+  /* ========================================
+     GENERAL GRID UTILITIES (for future use)
+  ======================================== */
+
+  .grid-responsive-1-2-3-4 {
+    @apply grid gap-4;
+    grid-template-columns: 1fr;
+    @apply md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+  }
+
+  .grid-responsive-1-2-3 {
+    @apply grid gap-4;
+    grid-template-columns: 1fr;
+    @apply md:grid-cols-2 lg:grid-cols-3;
+  }
+
+  .grid-responsive-1-2 {
+    @apply grid gap-4;
+    grid-template-columns: 1fr;
+    @apply md:grid-cols-2;
+  }
+
+  /* Grid item utilities */
+  .grid-item-full-width {
+    @apply col-span-full;
+  }
+
+  .grid-item-responsive-span {
+    @apply col-span-1 md:col-span-2 lg:col-span-3 xl:col-span-4;
+  }
+}

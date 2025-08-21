@@ -1,11 +1,15 @@
 // components/AddPaintForm.jsx
 import React, { useState, useEffect } from 'react';
-import { X, List, Edit, Info } from 'lucide-react';
+import { X, List, Edit, Info, ArrowLeft } from 'lucide-react';
 import {
   getAllPaints,
   getAllProjects,
   findPaintName
 } from '../../services/paints/index.js';
+import {
+  getCatalogBrands,
+  getAllCatalogPaints
+} from '../../services/paintCatalogService';
 import PaintCatalogBrowser from './PaintCatalogBrowser.jsx';
 import PaintDisclaimerModal from '../shared/PaintDisclaimerModal.jsx';
 
@@ -17,6 +21,15 @@ const AddPaintForm = ({ onAddPaint, loading, onCancel }) => {
   const [duplicateWarning, setDuplicateWarning] = useState('');
   const [showDisclaimer, setShowDisclaimer] = useState(false);
 
+  // Catalogue data for autocomplete
+  const [cataloguePaints, setCataloguePaints] = useState([]);
+  const [catalogueColours, setCatalogueColours] = useState([]);
+  const [userColours, setUserColours] = useState([]);
+
+  // Autocomplete suggestions
+  const [paintNameSuggestions, setPaintNameSuggestions] = useState([]);
+  const [colourSuggestions, setColourSuggestions] = useState([]);
+
   // Form state
   const [formData, setFormData] = useState({
     brand: '',
@@ -25,7 +38,7 @@ const AddPaintForm = ({ onAddPaint, loading, onCancel }) => {
     customType: '',
     name: '',
     colour: '',
-    status: 'listed',
+    status: 'collection', // Default to collection as requested
     airbrush: false,
     sprayPaint: false,
     selectedProjects: []
@@ -38,19 +51,39 @@ const AddPaintForm = ({ onAddPaint, loading, onCancel }) => {
 
   const loadFormData = async () => {
     try {
-      // Get all paints to extract unique brands and types
-      const [allPaints, allProjects] = await Promise.all([
+      // Get all user paints, catalogue paints, and projects
+      const [allPaints, catalogPaints, allProjects] = await Promise.all([
         getAllPaints(),
+        getAllCatalogPaints(),
         getAllProjects()
       ]);
 
-      // Extract unique brands and types, sort alphabetically
-      const uniqueBrands = [...new Set(allPaints.map(paint => paint.brand))].sort();
-      const uniqueTypes = [...new Set(allPaints.map(paint => paint.type))].sort();
+      // Extract unique brands and types from user paints
+      const userBrands = [...new Set(allPaints.map(paint => paint.brand))];
+      const userTypes = [...new Set(allPaints.map(paint => paint.type))];
 
-      setBrands(uniqueBrands);
-      setTypes(uniqueTypes);
+      // Extract brands from catalogue
+      const catalogBrands = await getCatalogBrands();
+
+      // Combine user brands with catalogue brands (remove duplicates)
+      const allBrands = [...new Set([...catalogBrands, ...userBrands])].sort();
+
+      // Extract unique types from catalogue and user paints
+      const catalogTypes = [...new Set(catalogPaints.map(paint => paint.type))];
+      const allTypes = [...new Set([...catalogTypes, ...userTypes])].sort();
+
+      // Extract colours from user paints
+      const userPaintColours = [...new Set(allPaints.map(paint => paint.colour).filter(Boolean))];
+
+      // Extract colours from catalogue paints
+      const catalogPaintColours = [...new Set(catalogPaints.map(paint => paint.colour).filter(Boolean))];
+
+      setBrands(allBrands);
+      setTypes(allTypes);
       setProjects(allProjects);
+      setCataloguePaints(catalogPaints);
+      setCatalogueColours(catalogPaintColours);
+      setUserColours(userPaintColours);
     } catch (error) {
       console.error('Error loading form data:', error);
     }
@@ -62,6 +95,41 @@ const AddPaintForm = ({ onAddPaint, loading, onCancel }) => {
       checkForDuplicates();
     }
   }, [formData.name, formData.brand, formData.customBrand, mode]);
+
+  // Generate paint name suggestions when user types
+  useEffect(() => {
+    if (formData.name.length >= 2) {
+      const suggestions = cataloguePaints
+        .filter(paint =>
+          paint.name.toLowerCase().includes(formData.name.toLowerCase())
+        )
+        .map(paint => paint.name)
+        .filter((name, index, array) => array.indexOf(name) === index) // Remove duplicates
+        .slice(0, 8); // Limit suggestions
+
+      setPaintNameSuggestions(suggestions);
+    } else {
+      setPaintNameSuggestions([]);
+    }
+  }, [formData.name, cataloguePaints]);
+
+  // Generate colour suggestions when user types
+  useEffect(() => {
+    if (formData.colour.length >= 1) {
+      // Combine user and catalogue colours
+      const allColours = [...new Set([...userColours, ...catalogueColours])];
+
+      const suggestions = allColours
+        .filter(colour =>
+          colour.toLowerCase().includes(formData.colour.toLowerCase())
+        )
+        .slice(0, 8);
+
+      setColourSuggestions(suggestions);
+    } else {
+      setColourSuggestions([]);
+    }
+  }, [formData.colour, userColours, catalogueColours]);
 
   const checkForDuplicates = async () => {
     if (!formData.name) {
@@ -101,6 +169,17 @@ const AddPaintForm = ({ onAddPaint, loading, onCancel }) => {
     }));
   };
 
+  // Handle suggestion selection
+  const handlePaintNameSuggestion = (suggestion) => {
+    setFormData(prev => ({ ...prev, name: suggestion }));
+    setPaintNameSuggestions([]);
+  };
+
+  const handleColourSuggestion = (suggestion) => {
+    setFormData(prev => ({ ...prev, colour: suggestion }));
+    setColourSuggestions([]);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -128,7 +207,7 @@ const AddPaintForm = ({ onAddPaint, loading, onCancel }) => {
       customType: '',
       name: '',
       colour: '',
-      status: 'listed',
+      status: 'collection', // Reset to default
       airbrush: false,
       sprayPaint: false,
       selectedProjects: []
@@ -228,27 +307,70 @@ const AddPaintForm = ({ onAddPaint, loading, onCancel }) => {
           />
         )}
 
-        {/* Manual Mode - Existing Form */}
+        {/* Manual Mode - Enhanced Form with Autocomplete */}
         {mode === 'manual' && (
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="font-medium text-gray-900 dark:text-white">Add Paint Manually</h4>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowDisclaimer(true)}
-                  className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                  title="Paint reference disclaimer"
-                >
-                  <Info size={16} className="w-4 h-4 border border-current rounded-full" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMode('choose')}
-                  className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                >
-                  Back to Options
-                </button>
+            <div className="flex items-center gap-3 mb-4">
+              <button
+                type="button"
+                onClick={() => setMode('choose')}
+                className="btn-icon text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
+              >
+                <ArrowLeft size={16} />
+              </button>
+              <div className="flex-1">
+                <h4 className="font-medium text-gray-900 dark:text-white">Add Paint Manually</h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDisclaimer(true)}
+                className="flex items-center gap-2 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                title="Paint reference disclaimer"
+              >
+                <Info size={16} className="w-4 h-4 border border-current rounded-full" />
+                <span className="text-sm">Disclaimer</span>
+              </button>
+            </div>
+
+            {/* Status Selection - Moved to top as requested */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
+              <div className="grid grid-cols-1 gap-2">
+                <label className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+                  <input
+                    type="radio"
+                    name="status"
+                    value="collection"
+                    checked={formData.status === 'collection'}
+                    onChange={(e) => setFormData({...formData, status: e.target.value})}
+                    className="w-4 h-4 border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  <span className="font-medium">Add to Collection (I own this)</span>
+                </label>
+
+                <label className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+                  <input
+                    type="radio"
+                    name="status"
+                    value="wishlist"
+                    checked={formData.status === 'wishlist'}
+                    onChange={(e) => setFormData({...formData, status: e.target.value})}
+                    className="w-4 h-4 border-gray-300 text-pink-600 focus:ring-pink-500"
+                  />
+                  <span className="font-medium">Add to Wishlist</span>
+                </label>
+
+                <label className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+                  <input
+                    type="radio"
+                    name="status"
+                    value="listed"
+                    checked={formData.status === 'listed'}
+                    onChange={(e) => setFormData({...formData, status: e.target.value})}
+                    className="w-4 h-4 border-gray-300 text-gray-600 focus:ring-gray-500"
+                  />
+                  <span className="font-medium">Listed (reference only)</span>
+                </label>
               </div>
             </div>
 
@@ -306,8 +428,8 @@ const AddPaintForm = ({ onAddPaint, loading, onCancel }) => {
               )}
             </div>
 
-            {/* Paint Name */}
-            <div>
+            {/* Paint Name with Autocomplete */}
+            <div className="relative">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Paint Name</label>
               <input
                 type="text"
@@ -316,7 +438,25 @@ const AddPaintForm = ({ onAddPaint, loading, onCancel }) => {
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
                 className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 required
+                autoComplete="off"
               />
+
+              {/* Paint Name Suggestions */}
+              {paintNameSuggestions.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  {paintNameSuggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => handlePaintNameSuggestion(suggestion)}
+                      className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-900 dark:text-white first:rounded-t-lg last:rounded-b-lg"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {duplicateWarning && (
                 <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
                   <p className="text-sm text-amber-700 dark:text-amber-300">
@@ -326,8 +466,8 @@ const AddPaintForm = ({ onAddPaint, loading, onCancel }) => {
               )}
             </div>
 
-            {/* Colour Input */}
-            <div>
+            {/* Colour Input with Autocomplete */}
+            <div className="relative">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Colour</label>
               <input
                 type="text"
@@ -336,78 +476,51 @@ const AddPaintForm = ({ onAddPaint, loading, onCancel }) => {
                 onChange={(e) => setFormData({...formData, colour: e.target.value})}
                 className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 required
+                autoComplete="off"
               />
+
+              {/* Colour Suggestions */}
+              {colourSuggestions.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  {colourSuggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => handleColourSuggestion(suggestion)}
+                      className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-900 dark:text-white first:rounded-t-lg last:rounded-b-lg"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">
                 Enter the main colour of this paint for easy filtering
               </div>
             </div>
 
-            {/* Paint Properties and Status */}
-            <div className="space-y-3">
-              {/* Status Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
-                <div className="grid grid-cols-1 gap-2">
-                  <label className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
-                    <input
-                      type="radio"
-                      name="status"
-                      value="listed"
-                      checked={formData.status === 'listed'}
-                      onChange={(e) => setFormData({...formData, status: e.target.value})}
-                      className="w-4 h-4 border-gray-300 text-gray-600 focus:ring-gray-500"
-                    />
-                    <span className="font-medium">Listed (reference only)</span>
-                  </label>
+            {/* Paint Properties */}
+            <div className="grid grid-cols-2 gap-4 pt-2">
+              <label className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={formData.airbrush}
+                  onChange={(e) => setFormData({...formData, airbrush: e.target.checked})}
+                  className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <span className="font-medium">Airbrush Compatible</span>
+              </label>
 
-                  <label className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
-                    <input
-                      type="radio"
-                      name="status"
-                      value="wishlist"
-                      checked={formData.status === 'wishlist'}
-                      onChange={(e) => setFormData({...formData, status: e.target.value})}
-                      className="w-4 h-4 border-gray-300 text-pink-600 focus:ring-pink-500"
-                    />
-                    <span className="font-medium">Add to Wishlist</span>
-                  </label>
-
-                  <label className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
-                    <input
-                      type="radio"
-                      name="status"
-                      value="collection"
-                      checked={formData.status === 'collection'}
-                      onChange={(e) => setFormData({...formData, status: e.target.value})}
-                      className="w-4 h-4 border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                    />
-                    <span className="font-medium">Add to Collection (I own this)</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Paint Properties */}
-              <div className="grid grid-cols-2 gap-4 pt-2">
-                <label className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
-                  <input
-                    type="checkbox"
-                    checked={formData.airbrush}
-                    onChange={(e) => setFormData({...formData, airbrush: e.target.checked})}
-                    className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                  />
-                  <span className="font-medium">Airbrush Compatible</span>
-                </label>
-
-                <label className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
-                  <input
-                    type="checkbox"
-                    checked={formData.sprayPaint}
-                    onChange={(e) => setFormData({...formData, sprayPaint: e.target.checked})}
-                    className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                  />
-                  <span className="font-medium">Spray Paint</span>
-                </label>
-              </div>
+              <label className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={formData.sprayPaint}
+                  onChange={(e) => setFormData({...formData, sprayPaint: e.target.checked})}
+                  className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <span className="font-medium">Spray Paint</span>
+              </label>
             </div>
 
             {/* Project Selection */}

@@ -1,4 +1,4 @@
-// components/projects/ProjectPhotoGallery.jsx - Full-screen editable metadata interface
+// components/projects/ProjectPhotoGallery.jsx - Responsive photo sizes for better tablet/desktop experience
 import React, { useState } from 'react';
 import { Camera, Star, X, Trash2, Eye, Edit, Save } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -146,9 +146,17 @@ const ProjectPhotoGallery = ({
   const isTopTier = currentTier === 'battle';
   const photoButtonDisabled = !canAddPhotos && isTopTier;
 
-  // Get photos to display in gallery (show 2 initially, all when expanded)
-  const displayPhotos = showAllPhotos ? projectPhotos : projectPhotos.slice(0, 2);
-  const hasMorePhotos = projectPhotos.length > 2;
+  // Get photos to display in gallery (show 4 initially on desktop, 2 on mobile, all when expanded)
+  const getInitialDisplayCount = () => {
+    // Mobile: 2, Tablet: 4, Desktop: 6
+    if (window.innerWidth < 768) return 2;
+    if (window.innerWidth < 1024) return 4;
+    return 6;
+  };
+
+  const [initialDisplayCount] = useState(getInitialDisplayCount());
+  const displayPhotos = showAllPhotos ? projectPhotos : projectPhotos.slice(0, initialDisplayCount);
+  const hasMorePhotos = projectPhotos.length > initialDisplayCount;
 
   return (
     <>
@@ -183,7 +191,7 @@ const ProjectPhotoGallery = ({
           </div>
         ) : (
           <>
-            {/* Cover Photo Section */}
+            {/* Cover Photo Section - More reasonable size */}
             {coverPhotoURL && (
               <div className="mb-6">
                 <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center">
@@ -191,13 +199,14 @@ const ProjectPhotoGallery = ({
                   Cover Photo
                 </h3>
 
-                <div className="w-1/2 pr-1.5">
-                  {/* Cover Photo Display - Same size as gallery photos */}
-                  <div className="aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 border-2 border-yellow-200 dark:border-yellow-600">
+                {/* Responsive cover photo container */}
+                <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 max-w-xs">
+                  {/* Cover Photo Display - Reasonable aspect ratio */}
+                  <div className="aspect-[4/3] rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 border-2 border-yellow-200 dark:border-yellow-600">
                     <img
                       src={coverPhotoURL}
                       alt="Project cover"
-                      className="w-full h-full object-contain cursor-pointer"
+                      className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-200"
                       onClick={() => {
                         const coverPhoto = projectPhotos.find(p => getPhotoUrl(p) === coverPhotoURL);
                         handleLightboxOpen(coverPhoto || coverPhotoURL);
@@ -223,43 +232,43 @@ const ProjectPhotoGallery = ({
                 Gallery
               </h3>
 
-              {/* Photo Grid */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
+              {/* Photo Grid - Responsive and smaller */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 mb-4">
                 {displayPhotos.map((photo, index) => {
                   const photoUrl = getPhotoUrl(photo);
                   const photoObj = getPhotoObject(photo);
                   const isCoverPhoto = photoUrl === coverPhotoURL;
 
                   return (
-                    <div key={photoUrl} className="relative">
-                      {/* Photo Card */}
-                      <div className="aspect-square rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                    <div key={photoUrl} className="relative group">
+                      {/* Photo Card - Smaller aspect ratio */}
+                      <div className="aspect-[4/3] rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
                         <img
                           src={photoUrl}
                           alt={photoObj.title || `Project photo ${index + 1}`}
-                          className="w-full h-full object-contain cursor-pointer"
+                          className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-200"
                           onClick={() => handleLightboxOpen(photo)}
                         />
                       </div>
 
                       {/* Cover Badge */}
                       {isCoverPhoto && (
-                        <div className="absolute top-2 left-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded-lg flex items-center gap-1">
-                          <Star size={10} />
-                          Cover
+                        <div className="absolute top-1.5 left-1.5 bg-yellow-500 text-white text-xs px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                          <Star size={8} />
+                          Cover Photo
                         </div>
                       )}
 
-                      {/* Delete Button - Always visible, bottom right */}
+                      {/* Delete Button - Smaller and only visible on hover on desktop */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleDeleteClick(photoUrl);
                         }}
-                        className="absolute bottom-2 right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors"
+                        className="absolute bottom-1.5 right-1.5 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100"
                         title="Delete photo"
                       >
-                        <Trash2 size={12} />
+                        <Trash2 size={10} />
                       </button>
                     </div>
                   );
@@ -275,7 +284,10 @@ const ProjectPhotoGallery = ({
                   {showAllPhotos ? (
                     <>Show Less</>
                   ) : (
-                    <>See All ({projectPhotos.length - 2} more)</>
+                    <>
+                      <Eye size={16} />
+                      See All ({projectPhotos.length - initialDisplayCount} more)
+                    </>
                   )}
                 </button>
               )}
@@ -318,7 +330,8 @@ const ProjectPhotoGallery = ({
               </button>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
+            {/* Modal grid - smaller photos */}
+            <div className="grid grid-cols-3 md:grid-cols-4 gap-3 max-h-96 overflow-y-auto">
               {projectPhotos.map((photo, index) => {
                 const photoUrl = getPhotoUrl(photo);
                 const isCurrentCover = photoUrl === coverPhotoURL;
@@ -327,7 +340,7 @@ const ProjectPhotoGallery = ({
                   <button
                     key={photoUrl}
                     onClick={() => handleSetCoverPhoto(photoUrl)}
-                    className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all ${
+                    className={`relative aspect-[4/3] rounded-lg overflow-hidden border-2 transition-all ${
                       isCurrentCover 
                         ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20' 
                         : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
@@ -336,7 +349,7 @@ const ProjectPhotoGallery = ({
                     <img
                       src={photoUrl}
                       alt={`Photo option ${index + 1}`}
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-cover"
                     />
 
                     {isCurrentCover && (

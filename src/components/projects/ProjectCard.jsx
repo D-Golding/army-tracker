@@ -191,13 +191,13 @@ const ProjectCard = ({
   return (
     <div className="card-base overflow-hidden">
 
-      {/* Project Photo */}
+      {/* Project Photo - UPDATED: Changed to object-contain and white/black background */}
       {coverPhoto ? (
-        <div className="aspect-video bg-gray-200 dark:bg-gray-700">
+        <div className="aspect-video bg-white dark:bg-gray-800">
           <img
             src={coverPhoto}
             alt={project.name || 'Project'}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
             onError={(e) => {
               e.target.style.display = 'none';
               e.target.parentElement.innerHTML = `

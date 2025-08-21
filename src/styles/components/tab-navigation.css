@@ -1,0 +1,71 @@
+/* src/styles/components/tab-navigation.css - Tab navigation grid system */
+
+@layer components {
+  /* ========================================
+     CONTENT WIDTH SYSTEM
+  ======================================== */
+
+  .content-container {
+    @apply max-w-2xl mx-auto;
+  }
+
+  /* ========================================
+     TAB NAVIGATION GRID - 2x2 Layout
+  ======================================== */
+
+  .tab-nav-container {
+    @apply content-container;
+  }
+
+  .tab-nav-grid {
+    @apply grid grid-cols-2 gap-1 p-1;
+  }
+
+  /* ========================================
+     TAB NAVIGATION BUTTONS
+  ======================================== */
+
+  .tab-nav-button {
+    @apply flex items-center justify-center gap-2 p-3 rounded-xl text-sm font-medium transition-all;
+  }
+
+  .tab-nav-button-active {
+    @apply tab-nav-button gradient-primary text-white shadow-lg;
+  }
+
+  .tab-nav-button-inactive {
+    @apply tab-nav-button text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700;
+  }
+
+  /* ========================================
+     NEWSFEED COMPONENTS
+  ======================================== */
+
+  .create-post-button {
+    @apply flex-1 text-left p-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-xl text-gray-600 dark:text-gray-400 transition-colors;
+  }
+
+  .feed-header-title {
+    @apply text-xl font-bold text-gray-900 dark:text-white;
+  }
+
+  .feed-header-subtitle {
+    @apply text-sm text-gray-500 dark:text-gray-400;
+  }
+
+  .feed-message-primary {
+    @apply text-gray-500 dark:text-gray-400 text-sm mb-2;
+  }
+
+  .feed-message-secondary {
+    @apply text-gray-400 dark:text-gray-500 text-xs;
+  }
+
+  .feed-empty-title {
+    @apply text-lg font-semibold text-gray-900 dark:text-white mb-2;
+  }
+
+  .feed-empty-text {
+    @apply text-gray-600 dark:text-gray-400 mb-4;
+  }
+}

@@ -1,4 +1,4 @@
-// pages/MyPostsPage.jsx - User's post management page
+// pages/MyPostsPage.jsx - User's post management page with global styling
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -105,65 +105,65 @@ const MyPostsPage = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 min-h-screen">
+      <div className="my-posts-wrapper">
+        <div className="my-posts-container">
 
           {/* Header */}
-          <div className="bg-indigo-600 text-white p-6 pt-12">
-            <div className="flex items-center gap-3 mb-4">
+          <div className="my-posts-header">
+            <div className="my-posts-header-content">
               <button
                 onClick={() => navigate('/app/community')}
-                className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+                className="my-posts-back-button"
               >
                 <ArrowLeft size={20} />
               </button>
               <div>
-                <h1 className="text-xl font-bold">My Posts</h1>
-                <p className="text-white/90 text-sm">
+                <h1 className="my-posts-title">My Posts</h1>
+                <p className="my-posts-subtitle">
                   Manage your community posts and photos
                 </p>
               </div>
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-4 gap-4 mb-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold">{stats.totalPosts}</div>
-                <div className="text-xs text-white/80">Posts</div>
+            <div className="my-posts-stats">
+              <div className="my-posts-stat-item">
+                <div className="my-posts-stat-value">{stats.totalPosts}</div>
+                <div className="my-posts-stat-label">Posts</div>
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold">{stats.totalPhotos}</div>
-                <div className="text-xs text-white/80">Photos</div>
+              <div className="my-posts-stat-item">
+                <div className="my-posts-stat-value">{stats.totalPhotos}</div>
+                <div className="my-posts-stat-label">Photos</div>
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold">{stats.totalLikes}</div>
-                <div className="text-xs text-white/80">Likes</div>
+              <div className="my-posts-stat-item">
+                <div className="my-posts-stat-value">{stats.totalLikes}</div>
+                <div className="my-posts-stat-label">Likes</div>
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold">{stats.totalComments}</div>
-                <div className="text-xs text-white/80">Comments</div>
+              <div className="my-posts-stat-item">
+                <div className="my-posts-stat-value">{stats.totalComments}</div>
+                <div className="my-posts-stat-label">Comments</div>
               </div>
             </div>
           </div>
 
           {/* Controls */}
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="my-posts-controls">
             {/* Search and Filter Row */}
-            <div className="flex gap-4 mb-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+            <div className="my-posts-search-row">
+              <div className="my-posts-search-container">
+                <Search className="my-posts-search-icon" size={16} />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search posts by content or tags..."
-                  className="form-input pl-10"
+                  className="my-posts-search-input"
                 />
               </div>
 
               <button
                 onClick={() => navigate('/app/community/create')}
-                className="btn-primary btn-md"
+                className="my-posts-new-post-button"
               >
                 <Plus size={16} />
                 New Post
@@ -171,13 +171,13 @@ const MyPostsPage = () => {
             </div>
 
             {/* Sort and Filter Row */}
-            <div className="flex gap-4">
-              <div className="flex items-center gap-2">
-                <Calendar size={16} className="text-gray-400" />
+            <div className="my-posts-filter-row">
+              <div className="my-posts-filter-group">
+                <Calendar size={16} className="my-posts-filter-icon" />
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="form-select text-sm"
+                  className="my-posts-filter-select"
                 >
                   <option value="newest">Newest First</option>
                   <option value="oldest">Oldest First</option>
@@ -187,12 +187,12 @@ const MyPostsPage = () => {
               </div>
 
               {allTags.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <Tag size={16} className="text-gray-400" />
+                <div className="my-posts-filter-group">
+                  <Tag size={16} className="my-posts-filter-icon" />
                   <select
                     value={filterTag}
                     onChange={(e) => setFilterTag(e.target.value)}
-                    className="form-select text-sm"
+                    className="my-posts-filter-select"
                   >
                     <option value="">All Tags</option>
                     {allTags.map(tag => (
@@ -205,18 +205,18 @@ const MyPostsPage = () => {
           </div>
 
           {/* Content */}
-          <div className="p-6">
+          <div className="my-posts-content">
             {isLoading ? (
               // Loading state
-              <div className="space-y-4">
+              <div className="my-posts-loading">
                 {[1, 2, 3].map(i => (
-                  <div key={i} className="card-base card-padding">
-                    <div className="animate-pulse">
-                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-4"></div>
-                      <div className="aspect-video bg-gray-200 dark:bg-gray-700 rounded-xl mb-4"></div>
-                      <div className="flex gap-4">
-                        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
-                        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
+                  <div key={i} className="my-posts-loading-card">
+                    <div className="my-posts-loading-content">
+                      <div className="my-posts-loading-title"></div>
+                      <div className="my-posts-loading-image"></div>
+                      <div className="my-posts-loading-actions">
+                        <div className="my-posts-loading-button w-20"></div>
+                        <div className="my-posts-loading-button w-16"></div>
                       </div>
                     </div>
                   </div>
@@ -224,14 +224,14 @@ const MyPostsPage = () => {
               </div>
             ) : isError ? (
               // Error state
-              <div className="text-center py-12">
-                <div className="text-red-500 mb-4">
+              <div className="my-posts-error-state">
+                <div className="my-posts-error-icon">
                   <AlertCircle size={48} className="mx-auto" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                <h3 className="my-posts-error-title">
                   Failed to Load Posts
                 </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                <p className="my-posts-error-text">
                   {error?.message || 'Something went wrong while loading your posts'}
                 </p>
                 <button
@@ -243,14 +243,14 @@ const MyPostsPage = () => {
               </div>
             ) : filteredPosts.length === 0 ? (
               // Empty state
-              <div className="text-center py-12">
-                <div className="text-gray-400 mb-4">
+              <div className="my-posts-empty-state">
+                <div className="my-posts-empty-icon">
                   <Image size={48} className="mx-auto" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                <h3 className="my-posts-empty-title">
                   {posts.length === 0 ? 'No Posts Yet' : 'No Posts Found'}
                 </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                <p className="my-posts-empty-text">
                   {posts.length === 0
                     ? 'Start sharing your miniature painting progress with the community!'
                     : 'Try adjusting your search or filter criteria.'
@@ -308,12 +308,12 @@ const PostManagementCard = ({ post, onEdit, onDelete, onViewPost, onPhotoClick, 
   const photos = post.photos || (post.photoData ? [post.photoData] : []);
 
   return (
-    <div className="card-base card-padding">
+    <div className="post-management-card">
       {/* Post Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-sm text-gray-500 dark:text-gray-400">
+      <div className="post-management-header">
+        <div className="post-management-meta">
+          <div className="post-management-meta-row">
+            <span className="post-management-timestamp">
               {getTimeAgo(post.createdAt)}
             </span>
             {post.tags && post.tags.length > 0 && (
@@ -330,16 +330,16 @@ const PostManagementCard = ({ post, onEdit, onDelete, onViewPost, onPhotoClick, 
             )}
           </div>
 
-          <p className="text-gray-900 dark:text-white text-sm line-clamp-3">
+          <p className="post-management-content">
             {post.content}
           </p>
         </div>
 
         {/* Actions Menu */}
-        <div className="relative ml-4">
+        <div className="post-management-menu">
           <button
             onClick={() => setShowMenu(!showMenu)}
-            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="post-management-menu-button"
           >
             <MoreHorizontal size={16} />
           </button>
@@ -395,42 +395,36 @@ const PostManagementCard = ({ post, onEdit, onDelete, onViewPost, onPhotoClick, 
           {photos.length === 1 ? (
             // Single photo
             <div
-              className="relative rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 cursor-pointer group"
+              className="post-photos-single group"
               onClick={() => onPhotoClick(post, 0)}
             >
               <img
                 src={photos[0].imageUrl}
                 alt={photos[0].title || 'Post image'}
-                className="w-full h-48 object-cover transition-transform group-hover:scale-105"
+                className="post-photos-single-image"
               />
-              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity" />
+              <div className="post-photos-single-overlay" />
             </div>
           ) : (
             // Multiple photos grid
-            <div className={`grid gap-1 rounded-lg overflow-hidden ${
-              photos.length === 2 ? 'grid-cols-2' :
-              photos.length === 3 ? 'grid-cols-3' :
-              'grid-cols-2'
-            }`}>
+            <div className={photos.length === 2 ? 'post-photos-grid-2' : photos.length === 3 ? 'post-photos-grid-3' : 'post-photos-grid-2'}>
               {photos.slice(0, 4).map((photo, index) => (
                 <div
                   key={index}
-                  className={`relative bg-gray-100 dark:bg-gray-700 cursor-pointer group ${
-                    photos.length === 3 && index === 0 ? 'row-span-2' : 'aspect-square'
-                  }`}
+                  className={`post-photos-grid-item group ${photos.length === 3 && index === 0 ? 'post-photos-grid-tall' : 'post-photos-grid-square'}`}
                   onClick={() => onPhotoClick(post, index)}
                 >
                   <img
                     src={photo.imageUrl}
                     alt={`Photo ${index + 1}`}
-                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                    className="post-photos-grid-item-image"
                   />
                   {index === 3 && photos.length > 4 && (
-                    <div className="absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center">
-                      <span className="text-white font-semibold">+{photos.length - 4}</span>
+                    <div className="post-photos-grid-more">
+                      <span className="post-photos-grid-more-text">+{photos.length - 4}</span>
                     </div>
                   )}
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity" />
+                  <div className="post-photos-grid-item-overlay" />
                 </div>
               ))}
             </div>
@@ -439,26 +433,26 @@ const PostManagementCard = ({ post, onEdit, onDelete, onViewPost, onPhotoClick, 
       )}
 
       {/* Stats */}
-      <div className="flex items-center justify-between py-2 border-t border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-          <span className="flex items-center gap-1">
+      <div className="post-stats-bar">
+        <div className="post-stats-info">
+          <span className="post-stats-item">
             <Heart size={14} />
             {post.likes?.count || 0} likes
           </span>
-          <span className="flex items-center gap-1">
+          <span className="post-stats-item">
             <MessageCircle size={14} />
             {post.comments?.count || 0} comments
           </span>
-          <span className="flex items-center gap-1">
+          <span className="post-stats-item">
             <Image size={14} />
             {photos.length} photo{photos.length !== 1 ? 's' : ''}
           </span>
         </div>
 
-        <div className="flex gap-2">
+        <div className="post-stats-actions">
           <button
             onClick={() => onEdit(post)}
-            className="btn-tertiary btn-sm"
+            className="post-edit-button"
           >
             <Edit size={14} />
             Edit

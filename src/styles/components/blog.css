@@ -1,0 +1,468 @@
+/* src/styles/components/blog.css - Blog-specific styling */
+
+@layer components {
+  /* ========================================
+     BLOG POST CARD COMPONENTS
+  ======================================== */
+
+  .blog-post-card {
+    @apply card-base card-padding group cursor-pointer hover:border-gray-300 dark:hover:border-gray-500 transition-all;
+  }
+
+  .blog-post-featured-image {
+    @apply aspect-video rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 mb-4;
+  }
+
+  .blog-post-image {
+    @apply w-full h-full object-cover transition-transform group-hover:scale-105;
+  }
+
+  .blog-post-category {
+    @apply mb-3;
+  }
+
+  .blog-post-title {
+    @apply text-lg font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2;
+  }
+
+  .blog-post-excerpt {
+    @apply text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-3;
+  }
+
+  .blog-post-tags {
+    @apply flex flex-wrap gap-1 mb-4;
+  }
+
+  .blog-post-meta {
+    @apply flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-3;
+  }
+
+  .blog-post-stats {
+    @apply flex items-center gap-4;
+  }
+
+  .blog-post-date {
+    @apply flex items-center gap-1;
+  }
+
+  /* ========================================
+     BLOG POST DETAIL COMPONENTS
+  ======================================== */
+
+  .blog-post-header {
+    @apply space-y-4;
+  }
+
+  .blog-post-detail-title {
+    @apply text-3xl font-bold text-gray-900 dark:text-white;
+  }
+
+  .blog-post-detail-meta {
+    @apply flex items-center justify-between;
+  }
+
+  .blog-post-detail-info {
+    @apply flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400;
+  }
+
+  .blog-post-detail-actions {
+    @apply flex items-center gap-2;
+  }
+
+  .blog-post-content {
+    @apply prose prose-gray dark:prose-invert max-w-none;
+  }
+
+  .blog-post-gallery {
+    @apply mt-8;
+  }
+
+  .blog-post-gallery-title {
+    @apply text-lg font-semibold text-gray-900 dark:text-white mb-4;
+  }
+
+  .blog-post-gallery-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 gap-4;
+  }
+
+  .blog-post-gallery-item {
+    @apply aspect-video rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700;
+  }
+
+  .blog-post-gallery-image {
+    @apply w-full h-full object-cover;
+  }
+
+  .blog-post-gallery-caption {
+    @apply text-sm text-gray-600 dark:text-gray-400 mt-2;
+  }
+
+  .blog-post-tags-section {
+    @apply mt-8 pt-6 border-t border-gray-200 dark:border-gray-700;
+  }
+
+  .blog-post-tags-title {
+    @apply text-sm font-medium text-gray-900 dark:text-white mb-3;
+  }
+
+  .blog-post-tags-list {
+    @apply flex flex-wrap gap-2;
+  }
+
+  /* ========================================
+     BLOG EDITOR COMPONENTS
+  ======================================== */
+
+  .blog-editor-container {
+    @apply max-w-4xl mx-auto p-6;
+  }
+
+  .blog-editor-header {
+    @apply flex items-center justify-between;
+  }
+
+  .blog-editor-title {
+    @apply text-2xl font-bold text-gray-900 dark:text-white;
+  }
+
+  .blog-editor-actions {
+    @apply flex items-center gap-2;
+  }
+
+  .blog-editor-form {
+    @apply grid grid-cols-1 lg:grid-cols-3 gap-6;
+  }
+
+  .blog-editor-main {
+    @apply lg:col-span-2 space-y-6;
+  }
+
+  .blog-editor-sidebar {
+    @apply space-y-6;
+  }
+
+  .blog-editor-content-field {
+    @apply form-textarea;
+    min-height: 400px;
+  }
+
+  .blog-editor-image-upload {
+    @apply border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors;
+  }
+
+  .blog-editor-image-preview {
+    @apply relative;
+  }
+
+  .blog-editor-image-remove {
+    @apply absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600;
+  }
+
+  .blog-editor-gallery-item {
+    @apply border border-gray-200 dark:border-gray-600 rounded-lg p-4;
+  }
+
+  .blog-editor-gallery-preview {
+    @apply flex gap-4;
+  }
+
+  .blog-editor-gallery-thumb {
+    @apply w-24 h-24 object-cover rounded-lg;
+  }
+
+  .blog-editor-gallery-actions {
+    @apply flex-1;
+  }
+
+  /* ========================================
+     BLOG ADMIN COMPONENTS
+  ======================================== */
+
+  .blog-admin-container {
+    @apply space-y-6;
+  }
+
+  .blog-admin-header {
+    @apply flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4;
+  }
+
+  .blog-admin-stats {
+    @apply grid grid-cols-1 md:grid-cols-4 gap-6;
+  }
+
+  .blog-admin-filters {
+    @apply card-base card-padding;
+  }
+
+  .blog-admin-filters-grid {
+    @apply grid grid-cols-1 md:grid-cols-4 gap-4;
+  }
+
+  .blog-admin-table {
+    @apply card-base;
+  }
+
+  .blog-admin-table-header {
+    @apply bg-gray-50 dark:bg-gray-700;
+  }
+
+  .blog-admin-table-cell {
+    @apply px-6 py-4;
+  }
+
+  .blog-admin-post-preview {
+    @apply flex items-start gap-3;
+  }
+
+  .blog-admin-post-thumb {
+    @apply w-16 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex-shrink-0;
+  }
+
+  .blog-admin-post-info {
+    @apply min-w-0 flex-1;
+  }
+
+  .blog-admin-post-title {
+    @apply font-medium text-gray-900 dark:text-white truncate;
+  }
+
+  .blog-admin-post-excerpt {
+    @apply text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mt-1;
+  }
+
+  .blog-admin-actions {
+    @apply flex items-center gap-2;
+  }
+
+  /* ========================================
+     BLOG COMMENTS COMPONENTS
+  ======================================== */
+
+  .blog-comments-container {
+    @apply space-y-6;
+  }
+
+  .blog-comments-form {
+    @apply space-y-4;
+  }
+
+  .blog-comments-textarea {
+    @apply form-textarea;
+  }
+
+  .blog-comments-submit {
+    @apply flex justify-between items-center mt-2;
+  }
+
+  .blog-comments-count {
+    @apply text-xs text-gray-500 dark:text-gray-400;
+  }
+
+  .blog-comments-list {
+    @apply space-y-4;
+  }
+
+  .blog-comment-item {
+    @apply flex gap-3;
+  }
+
+  .blog-comment-avatar {
+    @apply flex-shrink-0;
+  }
+
+  .blog-comment-avatar-image {
+    @apply w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-gray-600;
+  }
+
+  .blog-comment-avatar-placeholder {
+    @apply w-8 h-8 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center;
+  }
+
+  .blog-comment-avatar-initial {
+    @apply text-white font-medium text-xs;
+  }
+
+  .blog-comment-content {
+    @apply flex-1 min-w-0;
+  }
+
+  .blog-comment-bubble {
+    @apply bg-gray-50 dark:bg-gray-700 rounded-xl p-3;
+  }
+
+  .blog-comment-header {
+    @apply flex items-center gap-2 mb-1;
+  }
+
+  .blog-comment-author {
+    @apply font-medium text-gray-900 dark:text-white text-sm;
+  }
+
+  .blog-comment-timestamp {
+    @apply text-xs text-gray-500 dark:text-gray-400;
+  }
+
+  .blog-comment-edited {
+    @apply text-xs text-gray-400 dark:text-gray-500;
+  }
+
+  .blog-comment-text {
+    @apply text-gray-900 dark:text-white text-sm whitespace-pre-wrap break-words;
+  }
+
+  .blog-comment-actions {
+    @apply flex items-center gap-4 mt-2 ml-3;
+  }
+
+  .blog-comment-action {
+    @apply text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium;
+  }
+
+  .blog-comment-reported {
+    @apply text-xs text-amber-600 dark:text-amber-400;
+  }
+
+  /* ========================================
+     BLOG PREVIEW COMPONENTS
+  ======================================== */
+
+  .blog-preview-container {
+    @apply max-w-4xl mx-auto p-6;
+  }
+
+  .blog-preview-header {
+    @apply flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-4;
+  }
+
+  .blog-preview-title {
+    @apply text-xl font-bold text-gray-900 dark:text-white;
+  }
+
+  .blog-preview-actions {
+    @apply flex gap-2;
+  }
+
+  .blog-preview-content {
+    @apply card-base card-padding;
+  }
+
+  /* ========================================
+     BLOG CATEGORY BADGES
+  ======================================== */
+
+  .blog-category-painting {
+    @apply badge-blue;
+  }
+
+  .blog-category-tactics {
+    @apply badge-purple;
+  }
+
+  .blog-category-reviews {
+    @apply badge-emerald;
+  }
+
+  .blog-category-tutorials {
+    @apply badge-warning;
+  }
+
+  .blog-category-news {
+    @apply badge-danger;
+  }
+
+  .blog-category-showcase {
+    @apply badge-pink;
+  }
+
+  /* ========================================
+     BLOG STATUS BADGES
+  ======================================== */
+
+  .blog-status-published {
+    @apply badge-secondary;
+  }
+
+  .blog-status-draft {
+    @apply badge-tertiary;
+  }
+
+  .blog-status-archived {
+    @apply badge-warning;
+  }
+
+  /* ========================================
+     BLOG LOADING STATES
+  ======================================== */
+
+  .blog-loading-card {
+    @apply card-base card-padding animate-pulse;
+  }
+
+  .blog-loading-image {
+    @apply aspect-video bg-gray-200 dark:bg-gray-700 rounded-xl mb-4;
+  }
+
+  .blog-loading-category {
+    @apply h-5 bg-gray-200 dark:bg-gray-700 rounded w-20 mb-3;
+  }
+
+  .blog-loading-title {
+    @apply h-6 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2;
+  }
+
+  .blog-loading-excerpt {
+    @apply space-y-2 mb-4;
+  }
+
+  .blog-loading-excerpt-line {
+    @apply h-4 bg-gray-200 dark:bg-gray-700 rounded;
+  }
+
+  .blog-loading-meta {
+    @apply flex justify-between items-center pt-3 border-t border-gray-200 dark:border-gray-700;
+  }
+
+  .blog-loading-stats {
+    @apply flex gap-4;
+  }
+
+  .blog-loading-stat {
+    @apply h-3 bg-gray-200 dark:bg-gray-700 rounded w-12;
+  }
+
+  /* ========================================
+     BLOG RESPONSIVE UTILITIES
+  ======================================== */
+
+  @media (max-width: 768px) {
+    .blog-editor-form {
+      @apply grid-cols-1;
+    }
+
+    .blog-admin-filters-grid {
+      @apply grid-cols-1;
+    }
+
+    .blog-admin-stats {
+      @apply grid-cols-2;
+    }
+
+    .blog-post-gallery-grid {
+      @apply grid-cols-1;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .blog-admin-stats {
+      @apply grid-cols-1;
+    }
+
+    .blog-post-meta {
+      @apply flex-col items-start gap-2;
+    }
+
+    .blog-post-stats {
+      @apply w-full justify-between;
+    }
+  }
+}

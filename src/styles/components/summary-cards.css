@@ -9,17 +9,23 @@
     @apply mx-4;
     /* Tablet & Desktop - Match navigation container width exactly */
     @apply md:mx-auto md:max-w-2xl lg:max-w-3xl;
+    /* FIXED: Only add box-sizing, keep original max-widths */
+    box-sizing: border-box;
   }
 
   /* Also use this class for paint search and action buttons */
   .paint-search-container {
     @apply mx-4;
     @apply md:mx-auto md:max-w-2xl lg:max-w-3xl;
+    /* FIXED: Only add box-sizing, keep original max-widths */
+    box-sizing: border-box;
   }
 
   .paint-actions-container {
     @apply mx-4;
     @apply md:mx-auto md:max-w-2xl lg:max-w-3xl;
+    /* FIXED: Only add box-sizing, keep original max-widths */
+    box-sizing: border-box;
   }
 
   /* ========================================

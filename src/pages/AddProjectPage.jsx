@@ -1,24 +1,105 @@
-// pages/AddProjectPage.jsx - Updated to use project wizard
-import React from 'react';
+// pages/AddProjectPage.jsx - Simplified to just project details
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Plus } from 'lucide-react';
 import { useProjectOperations } from '../hooks/useProjects';
 import { useGamificationOperations } from '../hooks/useGamification';
-import AddProjectWizard from '../components/projects/wizard/project/AddProjectWizard';
+import { validateProjectForm } from '../utils/projectValidation';
+import ProjectDetailsForm from '../components/projects/wizard/project/ProjectDetailsForm';
 
 const AddProjectPage = () => {
   const navigate = useNavigate();
   const { createProject, isLoading } = useProjectOperations();
   const { triggerForAction } = useGamificationOperations();
 
+  // Form state - just the basic project details
+  const [formData, setFormData] = useState({
+    name: '',
+    difficulty: 'beginner',
+    manufacturer: '',
+    customManufacturer: '',
+    game: '',
+    customGame: '',
+    description: ''
+  });
+
+  const [errors, setErrors] = useState({});
+
+  // Update a single field
+  const updateField = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+
+    // Clear error for this field when user starts typing
+    if (errors[field]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  // Handle manufacturer changes with reset logic
+  const updateManufacturer = (manufacturer) => {
+    setFormData(prev => ({
+      ...prev,
+      manufacturer,
+      customManufacturer: manufacturer === 'custom' ? prev.customManufacturer : '',
+      game: '', // Reset game when manufacturer changes
+      customGame: ''
+    }));
+  };
+
+  // Handle game changes
+  const updateGame = (game) => {
+    setFormData(prev => ({
+      ...prev,
+      game,
+      customGame: game === 'custom' ? prev.customGame : ''
+    }));
+  };
+
   // Handle form submission
-  const handleFormSubmit = async (projectData) => {
-    console.log('AddProjectPage: Received project data:', projectData);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Validate form
+    const validation = validateProjectForm(formData);
+    if (!validation.isValid) {
+      setErrors(validation.errors);
+      return;
+    }
+
+    setErrors({});
 
     try {
+      console.log('AddProjectPage: Creating project with data:', formData);
+
+      // Determine final manufacturer and game values
+      const finalManufacturer = formData.manufacturer === 'custom'
+        ? (formData.customManufacturer || '').trim()
+        : (formData.manufacturer || '');
+
+      const finalGame = formData.game === 'custom'
+        ? (formData.customGame || '').trim()
+        : (formData.game || '');
+
+      // Create project data object
+      const projectData = {
+        name: formData.name.trim(),
+        manufacturer: finalManufacturer,
+        game: finalGame,
+        description: (formData.description || '').trim(),
+        difficulty: formData.difficulty || 'beginner',
+        status: 'upcoming'
+      };
+
       console.log('AddProjectPage: Calling createProject...');
-      await createProject(projectData);
-      console.log('AddProjectPage: Project created successfully');
+      const result = await createProject(projectData);
+      console.log('AddProjectPage: Project created successfully:', result);
 
       // Trigger achievement check for project creation
       try {
@@ -31,13 +112,15 @@ const AddProjectPage = () => {
         console.error('Achievement trigger failed (non-blocking):', achievementError);
       }
 
-      // Navigate back to projects list
-      console.log('AddProjectPage: Navigating to projects list...');
-      navigate('/app/projects');
+      // Navigate to the newly created project
+      console.log('AddProjectPage: Navigating to project:', result.id);
+      navigate(`/app/projects/${result.id}`);
 
     } catch (error) {
       console.error('AddProjectPage: Error creating project:', error);
-      throw error; // Re-throw so wizard can handle UI feedback
+      setErrors({
+        submit: error.message || 'Failed to create project. Please try again.'
+      });
     }
   };
 
@@ -64,13 +147,67 @@ const AddProjectPage = () => {
         </div>
       </div>
 
-      {/* Wizard Card */}
+      {/* Form Card */}
       <div className="card-base card-padding">
-        <AddProjectWizard
-          onSubmit={handleFormSubmit}
-          onCancel={handleCancel}
-          isLoading={isLoading}
-        />
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <ProjectDetailsForm
+            formData={formData}
+            onFieldChange={updateField}
+            onManufacturerChange={updateManufacturer}
+            onGameChange={updateGame}
+            errors={errors}
+            isLoading={isLoading}
+          />
+
+          {/* Submit Error Display */}
+          {errors.submit && (
+            <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl p-4">
+              <div className="text-red-800 dark:text-red-300 text-sm font-medium">
+                {errors.submit}
+              </div>
+            </div>
+          )}
+
+          {/* Form Actions */}
+          <div className="flex gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <button
+              type="button"
+              onClick={handleCancel}
+              disabled={isLoading}
+              className="btn-tertiary btn-md"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              disabled={isLoading || !formData.name?.trim()}
+              className={`btn-primary btn-md flex-1 ${
+                isLoading || !formData.name?.trim() ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              {isLoading ? (
+                <>
+                  <div className="loading-spinner mr-2"></div>
+                  Creating Project...
+                </>
+              ) : (
+                <>
+                  <Plus size={16} />
+                  Create Project
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Info Box */}
+          <div className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4">
+            <div className="text-indigo-800 dark:text-indigo-300 text-sm">
+              <div className="font-medium mb-1">💡 What's next?</div>
+              <p>After creating your project, you can add paints, upload photos, and create detailed painting steps!</p>
+            </div>
+          </div>
+        </form>
       </div>
     </div>
   );

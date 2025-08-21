@@ -1,4 +1,4 @@
-// components/newsfeed/PostComments.jsx - Comments display component
+// components/newsfeed/PostComments.jsx - Comments display component with global styling
 import React from 'react';
 import { MessageCircle, AlertCircle } from 'lucide-react';
 import { usePostComments } from '../../hooks/useNewsfeed';
@@ -12,12 +12,12 @@ const PostComments = ({ postId }) => {
     return (
       <div className="space-y-3">
         {[1, 2].map(i => (
-          <div key={i} className="animate-pulse">
-            <div className="flex gap-3">
-              <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full flex-shrink-0"></div>
-              <div className="flex-1 space-y-2">
-                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+          <div key={i} className="comment-skeleton">
+            <div className="comment-skeleton-layout">
+              <div className="comment-skeleton-avatar"></div>
+              <div className="comment-skeleton-content">
+                <div className="comment-skeleton-author"></div>
+                <div className="comment-skeleton-text"></div>
               </div>
             </div>
           </div>
@@ -29,9 +29,9 @@ const PostComments = ({ postId }) => {
   // Error state
   if (isError) {
     return (
-      <div className="text-center py-4">
-        <AlertCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+      <div className="comments-error-state">
+        <AlertCircle className="comments-error-icon" />
+        <p className="comments-error-text">
           {error?.message || 'Failed to load comments'}
         </p>
       </div>
@@ -43,9 +43,9 @@ const PostComments = ({ postId }) => {
   // Empty state
   if (comments.length === 0) {
     return (
-      <div className="text-center py-6">
-        <MessageCircle className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+      <div className="comments-empty-state">
+        <MessageCircle className="comments-empty-icon" />
+        <p className="comments-empty-text">
           No comments yet. Be the first to comment!
         </p>
       </div>
@@ -75,18 +75,18 @@ const CommentItem = ({ comment }) => {
   };
 
   return (
-    <div className="flex gap-3">
+    <div className="comment-item">
       {/* Commenter Avatar */}
-      <div className="flex-shrink-0">
+      <div className="comment-avatar">
         {comment.authorData?.photoURL ? (
           <img
             src={comment.authorData.photoURL}
             alt={comment.authorData.displayName}
-            className="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-gray-600"
+            className="comment-avatar-image"
           />
         ) : (
-          <div className="w-8 h-8 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center">
-            <span className="text-white font-medium text-xs">
+          <div className="comment-avatar-placeholder">
+            <span className="comment-avatar-initial">
               {comment.authorData?.displayName?.charAt(0)?.toUpperCase() || '?'}
             </span>
           </div>
@@ -94,36 +94,36 @@ const CommentItem = ({ comment }) => {
       </div>
 
       {/* Comment Content */}
-      <div className="flex-1 min-w-0">
-        <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-3">
+      <div className="comment-content">
+        <div className="comment-bubble">
           {/* Comment Header */}
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-medium text-gray-900 dark:text-white text-sm">
+          <div className="comment-header">
+            <span className="comment-author-name">
               {comment.authorData?.displayName || 'Unknown User'}
             </span>
-            <span className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="comment-timestamp">
               {getTimeAgo()}
             </span>
             {comment.isEdited && (
-              <span className="text-xs text-gray-400 dark:text-gray-500">
+              <span className="comment-edited-label">
                 (edited)
               </span>
             )}
           </div>
 
           {/* Comment Text */}
-          <p className="text-gray-900 dark:text-white text-sm whitespace-pre-wrap break-words">
+          <p className="comment-text">
             {comment.content}
           </p>
         </div>
 
         {/* Comment Actions */}
-        <div className="flex items-center gap-4 mt-2 ml-3">
-          <button className="text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium">
+        <div className="comment-actions">
+          <button className="comment-reply-button">
             Reply
           </button>
           {comment.isReported && (
-            <span className="text-xs text-amber-600 dark:text-amber-400">
+            <span className="comment-reported-label">
               Reported
             </span>
           )}

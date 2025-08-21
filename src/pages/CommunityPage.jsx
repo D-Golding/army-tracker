@@ -1,5 +1,4 @@
-
-// pages/CommunityPage.jsx - Main community page with 2x2 grid navigation
+// pages/CommunityPage.jsx - Main community page with consistent styling
 import React, { useState } from 'react';
 import { Users, UserPlus, Search, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -79,44 +78,42 @@ const CommunityPage = () => {
   const ActiveComponent = activeTabData?.component;
 
   return (
-    <div className="space-y-6">
+    <div className="page-content">
       {/* Community Header */}
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+      <div className="page-header">
+        <h1 className="page-header-title">
           Community
         </h1>
-        <p className="text-gray-600 dark:text-gray-400 text-sm">
+        <p className="page-header-subtitle">
           Connect with other painters in the community
         </p>
       </div>
 
-      {/* Tab Navigation - 2x2 Grid */}
-      <div className="card-base">
-        <div className="grid grid-cols-2 gap-1 p-1">
-          {tabs.map((tab) => {
-            const IconComponent = tab.icon;
-            const isActive = activeTab === tab.id;
+      {/* Tab Navigation - 2x2 Grid with proper sizing */}
+      <div className="tab-nav-container">
+        <div className="card-base">
+          <div className="tab-nav-grid">
+            {tabs.map((tab) => {
+              const IconComponent = tab.icon;
+              const isActive = activeTab === tab.id;
 
-            return (
-              <button
-                key={tab.id}
-                onClick={() => handleTabClick(tab)}
-                className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-semibold transition-all ${
-                  isActive
-                    ? 'gradient-primary text-white shadow-lg'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
-                }`}
-              >
-                <IconComponent size={16} />
-                <span className="hidden sm:inline">{tab.label}</span>
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabClick(tab)}
+                  className={isActive ? 'tab-nav-button-active' : 'tab-nav-button-inactive'}
+                >
+                  <IconComponent size={16} />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
       {/* Tab Content */}
-      <div className="min-h-96">
+      <div className="page-content-area">
         {ActiveComponent && <ActiveComponent />}
       </div>
     </div>

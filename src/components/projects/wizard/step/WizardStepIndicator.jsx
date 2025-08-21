@@ -1,13 +1,10 @@
-// components/projects/wizard/WizardStepIndicator.jsx - Icons only version
+// components/projects/wizard/WizardStepIndicator.jsx - Updated for 2 steps only
 import React from 'react';
-import { Check, ListOrdered, Palette, Camera, FileText } from 'lucide-react';
+import { Check, ListOrdered, Palette } from 'lucide-react';
 
 const STEP_ICONS = {
   details: ListOrdered,
-  paints: Palette,
-  photos: Camera,
-  notes: FileText,
-  review: Check
+  paints: Palette
 };
 
 const WizardStepIndicator = ({

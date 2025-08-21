@@ -1,15 +1,21 @@
-// components/layouts/AdminLayout.jsx - Updated with GlobalFooter
-import React, { useState } from 'react';
+// components/layouts/AdminLayout.jsx - Updated to use persistent dark mode
+import React from 'react';
 import { Outlet, Link } from 'react-router-dom';
 import { ArrowLeft, Shield, Moon, Sun } from 'lucide-react';
 import GlobalFooter from '../GlobalFooter';
+import { useDarkMode } from '../../hooks/shared/useDarkMode';
 
 const AdminLayout = () => {
-  const [darkMode, setDarkMode] = useState(false);
+  const { darkMode, toggleDarkMode, isLoading } = useDarkMode();
 
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-  };
+  // Show a minimal loading state while dark mode initializes
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-600">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className={darkMode ? 'dark' : ''}>
@@ -39,6 +45,7 @@ const AdminLayout = () => {
               <button
                 onClick={toggleDarkMode}
                 className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+                title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
               >
                 {darkMode ? <Sun size={20} /> : <Moon size={20} />}
               </button>

@@ -1,0 +1,131 @@
+/* src/styles/components/post-comments.css - Post comments component styling */
+
+@layer components {
+  /* ========================================
+     COMMENT LOADING STATES
+  ======================================== */
+
+  .comment-skeleton {
+    @apply animate-pulse;
+  }
+
+  .comment-skeleton-layout {
+    @apply flex gap-3;
+  }
+
+  .comment-skeleton-avatar {
+    @apply w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-full flex-shrink-0;
+  }
+
+  .comment-skeleton-content {
+    @apply flex-1 space-y-2;
+  }
+
+  .comment-skeleton-author {
+    @apply skeleton-text-sm w-1/4;
+  }
+
+  .comment-skeleton-text {
+    @apply skeleton-text-md w-3/4;
+  }
+
+  /* ========================================
+     COMMENT STATES
+  ======================================== */
+
+  .comments-error-state {
+    @apply text-center py-4;
+  }
+
+  .comments-error-icon {
+    @apply w-8 h-8 text-gray-400 mx-auto mb-2;
+  }
+
+  .comments-error-text {
+    @apply text-sm text-gray-500 dark:text-gray-400;
+  }
+
+  .comments-empty-state {
+    @apply text-center py-6;
+  }
+
+  .comments-empty-icon {
+    @apply w-8 h-8 text-gray-400 mx-auto mb-2;
+  }
+
+  .comments-empty-text {
+    @apply text-sm text-gray-500 dark:text-gray-400;
+  }
+
+  /* ========================================
+     COMMENT ITEM LAYOUT
+  ======================================== */
+
+  .comment-item {
+    @apply flex gap-3;
+  }
+
+  .comment-avatar {
+    @apply flex-shrink-0;
+  }
+
+  .comment-avatar-image {
+    @apply w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-gray-600;
+  }
+
+  .comment-avatar-placeholder {
+    @apply w-8 h-8 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center;
+  }
+
+  .comment-avatar-initial {
+    @apply text-white font-medium text-xs;
+  }
+
+  .comment-content {
+    @apply flex-1 min-w-0;
+  }
+
+  /* ========================================
+     COMMENT BUBBLE
+  ======================================== */
+
+  .comment-bubble {
+    @apply bg-gray-50 dark:bg-gray-700 rounded-xl p-3;
+  }
+
+  .comment-header {
+    @apply flex items-center gap-2 mb-1;
+  }
+
+  .comment-author-name {
+    @apply font-medium text-gray-900 dark:text-white text-sm;
+  }
+
+  .comment-timestamp {
+    @apply text-xs text-gray-500 dark:text-gray-400;
+  }
+
+  .comment-edited-label {
+    @apply text-xs text-gray-400 dark:text-gray-500;
+  }
+
+  .comment-text {
+    @apply text-gray-900 dark:text-white text-sm whitespace-pre-wrap break-words;
+  }
+
+  /* ========================================
+     COMMENT ACTIONS
+  ======================================== */
+
+  .comment-actions {
+    @apply flex items-center gap-4 mt-2 ml-3;
+  }
+
+  .comment-reply-button {
+    @apply text-xs text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium;
+  }
+
+  .comment-reported-label {
+    @apply text-xs text-amber-600 dark:text-amber-400;
+  }
+}

@@ -1,4 +1,4 @@
-// pages/CreatePostPage.jsx - Dedicated news feed post creation page with visibility
+// pages/CreatePostPage.jsx - Create post page with global styling
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Camera, Type, Hash, Upload } from 'lucide-react';
@@ -198,47 +198,49 @@ const CreatePostPage = () => {
   const currentStepData = steps[currentStep - 1];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-2xl mx-auto bg-white dark:bg-gray-800 min-h-screen">
+    <div className="create-post-wrapper">
+      <div className="create-post-container">
 
         {/* Header */}
-        <div className="bg-indigo-600 text-white p-6 pt-12">
-          <div className="flex items-center gap-3 mb-4">
+        <div className="create-post-header">
+          <div className="create-post-header-content">
             <button
               onClick={handleBack}
-              className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+              className="create-post-back-button"
               disabled={isUploading || isSubmitting}
             >
               <ArrowLeft size={20} />
             </button>
             <div>
-              <h1 className="text-xl font-bold">Create Post</h1>
-              <p className="text-white/90 text-sm">
+              <h1 className="create-post-title">Create Post</h1>
+              <p className="create-post-subtitle">
                 {currentStepData.description}
               </p>
             </div>
           </div>
 
           {/* Progress Indicator */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="create-post-progress">
             {steps.map((step, index) => (
               <div key={step.id} className="flex items-center">
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
+                  className={
                     index + 1 < currentStep
-                      ? 'bg-white text-indigo-600'
+                      ? 'create-post-step-completed'
                       : index + 1 === currentStep
-                      ? 'bg-white/20 text-white border-2 border-white'
-                      : 'bg-white/10 text-white/60'
-                  }`}
+                      ? 'create-post-step-current'
+                      : 'create-post-step-upcoming'
+                  }
                 >
                   {index + 1 < currentStep ? '✓' : index + 1}
                 </div>
                 {index < steps.length - 1 && (
                   <div
-                    className={`h-1 w-8 mx-2 transition-all ${
-                      index + 1 < currentStep ? 'bg-white' : 'bg-white/20'
-                    }`}
+                    className={
+                      index + 1 < currentStep
+                        ? 'create-post-step-connector-completed'
+                        : 'create-post-step-connector-upcoming'
+                    }
                   />
                 )}
               </div>
@@ -247,7 +249,7 @@ const CreatePostPage = () => {
         </div>
 
         {/* Step Content */}
-        <div className="p-6">
+        <div className="create-post-content">
           {currentStep === 1 && (
             <PhotoSelectionStep
               formData={formData}
@@ -300,11 +302,11 @@ const CreatePostPage = () => {
 
         {/* Navigation */}
         {currentStep < 6 && (
-          <div className="flex gap-3 p-6 border-t border-gray-200 dark:border-gray-700">
+          <div className="create-post-navigation">
             <button
               onClick={handleBack}
               disabled={isUploading || isSubmitting}
-              className="btn-tertiary btn-md"
+              className="create-post-nav-back"
             >
               {currentStep === 1 ? 'Cancel' : 'Back'}
             </button>
@@ -312,7 +314,7 @@ const CreatePostPage = () => {
             <button
               onClick={handleNext}
               disabled={!canProceed() || isUploading || isSubmitting}
-              className="btn-primary btn-md flex-1"
+              className="create-post-nav-continue"
             >
               {currentStep === 5 ? 'Share Post' : 'Continue'}
             </button>

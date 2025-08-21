@@ -1,12 +1,10 @@
 // hooks/useStepWizard.js - Wizard navigation logic
 import { useState } from 'react';
 
+// Simplified to only 2 steps for creation wizard
 const WIZARD_STEPS = [
   { id: 'details', title: 'Step Details', required: true },
-  { id: 'paints', title: 'Paint Assignments', required: false },
-  { id: 'photos', title: 'Step Photos', required: false },
-  { id: 'notes', title: 'Notes', required: false },
-  { id: 'review', title: 'Review', required: false }
+  { id: 'paints', title: 'Paint Assignments', required: false }
 ];
 
 export const useStepWizard = (formData) => {

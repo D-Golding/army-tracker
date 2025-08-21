@@ -1,4 +1,4 @@
-// components/projects/wizard/ProjectDetailsForm.jsx - Project details form step
+// components/projects/wizard/project/ProjectDetailsForm.jsx - Updated for standalone use
 import React from 'react';
 import { FileText } from 'lucide-react';
 import ManufacturerSelector from '../../ManufacturerSelector';
@@ -21,7 +21,7 @@ const ProjectDetailsForm = ({
           Project Details
         </h3>
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          Tell us about your new painting project
+          Enter the basic information for your painting project
         </p>
       </div>
 
@@ -47,10 +47,10 @@ const ProjectDetailsForm = ({
         )}
       </div>
 
-      {/* Difficulty - Required */}
+      {/* Difficulty - Required but has default */}
       <div>
         <label className="form-label">
-          Difficulty Level *
+          Difficulty Level
         </label>
         <select
           value={formData.difficulty}
@@ -109,14 +109,6 @@ const ProjectDetailsForm = ({
         />
         <div className="form-help">
           Add details about your project vision and goals
-        </div>
-      </div>
-
-      {/* Info Box */}
-      <div className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4">
-        <div className="text-indigo-800 dark:text-indigo-300 text-sm">
-          <div className="font-medium mb-1">💡 What's next?</div>
-          <p>After entering your project details, you can add paints from your inventory and upload photos!</p>
         </div>
       </div>
     </div>

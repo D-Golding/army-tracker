@@ -7,6 +7,9 @@
 
   .app-wrapper {
     @apply min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors;
+    /* FIXED: Add horizontal overflow prevention */
+    overflow-x: hidden;
+    max-width: 100vw;
   }
 
   /* ========================================
@@ -17,14 +20,19 @@
     @apply max-w-md mx-auto bg-gray-50 dark:bg-gray-900 min-h-screen flex flex-col relative;
     /* Tablet & Desktop */
     @apply md:max-w-4xl lg:max-w-6xl xl:max-w-7xl;
-    /* 17" Monitor Max (1920px) */
+    /* FIXED: Better viewport constraint and overflow prevention */
     max-width: min(100vw, 1920px);
+    overflow-x: hidden;
+    box-sizing: border-box;
   }
 
   .main-content {
     @apply flex-1 p-4 pt-6;
     /* Tablet & Desktop */
     @apply md:p-6 md:pt-8 lg:p-8 lg:pt-10;
+    /* FIXED: Ensure content doesn't exceed container */
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   /* ========================================
@@ -33,9 +41,15 @@
 
   .container-mobile {
     @apply max-w-md mx-auto px-4;
+    /* FIXED: Add viewport constraint */
+    max-width: min(28rem, calc(100vw - 2rem));
+    box-sizing: border-box;
   }
 
   .container-desktop {
     @apply max-w-6xl mx-auto px-4 sm:px-6 lg:px-8;
+    /* FIXED: Add viewport constraint */
+    max-width: min(72rem, calc(100vw - 2rem));
+    box-sizing: border-box;
   }
 }

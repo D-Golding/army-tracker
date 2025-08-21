@@ -194,10 +194,11 @@ const PaintCatalogBrowser = ({ onAddPaints, onBack }) => {
         </div>
         <button
           onClick={() => setShowDisclaimer(true)}
-          className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          className="flex items-center gap-2 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
           title="Paint reference disclaimer"
         >
           <Info size={16} className="w-4 h-4 border border-current rounded-full" />
+          <span className="text-sm">Disclaimer</span>
         </button>
       </div>
 

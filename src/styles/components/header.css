@@ -6,7 +6,9 @@
   ======================================== */
 
   .header-banner {
-    @apply relative text-white p-6 pt-12 overflow-visible;
+    @apply relative text-white p-6 pt-12;
+    /* FIXED: Change from overflow-visible to overflow-hidden to prevent horizontal scroll */
+    overflow: hidden;
     /* Enterprise min-height system - Increased for more breathing room */
     min-height: 12rem; /* Mobile: 192px base */
     /* Tablet & Desktop - More generous heights */
@@ -14,39 +16,55 @@
     /* Progressive height scaling - Taller for desktop */
     @apply md:min-h-[16rem] lg:min-h-[20rem] xl:min-h-[24rem];
 
-    /* Full width, naturally - no container constraints */
+    /* FIXED: Ensure header respects viewport width */
     width: 100%;
-    /* 17" Monitor Max (1920px) - center when at max width */
-    max-width: 1920px;
+    max-width: min(100vw, 1920px);
     margin: 0 auto;
+    box-sizing: border-box;
   }
 
   .header-banner-decorative {
-    @apply absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-8 translate-x-8 transform rotate-12;
+    @apply absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full transform rotate-12;
+    /* FIXED: Constrain decorative element to not exceed viewport */
+    transform: translateY(-2rem) translateX(2rem) rotate(12deg);
     /* Tablet & Desktop */
     @apply md:w-40 md:h-40 lg:w-48 lg:h-48;
+    /* FIXED: Ensure it doesn't cause horizontal overflow */
+    right: 0;
+    max-width: 25%;
   }
 
   .header-banner-content {
     @apply relative z-10 flex justify-between items-start;
+    /* FIXED: Ensure content respects container width */
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .header-banner-title {
     @apply text-2xl font-bold mb-1;
     /* Tablet & Desktop - Third larger size for desktop */
     @apply md:text-4xl lg:text-5xl xl:text-6xl;
+    /* FIXED: Prevent title from exceeding container */
+    max-width: 100%;
+    word-wrap: break-word;
   }
 
   .header-banner-subtitle {
     @apply text-white/90 text-sm;
     /* Tablet & Desktop - Larger subtitle scaling */
     @apply md:text-lg lg:text-xl xl:text-2xl;
+    /* FIXED: Prevent subtitle from exceeding container */
+    max-width: 100%;
+    word-wrap: break-word;
   }
 
   .header-banner-controls {
     @apply flex gap-2 items-center;
     /* Tablet & Desktop */
     @apply md:gap-3 lg:gap-4;
+    /* FIXED: Prevent controls from exceeding container */
+    flex-shrink: 0;
   }
 
   .header-banner-edit-btn {
@@ -73,12 +91,18 @@
     @apply relative text-white px-6 pb-2;
     /* Tablet & Desktop - Reduced bottom padding to close gap */
     @apply md:px-8 md:pb-3 lg:px-12 lg:pb-4;
+    /* FIXED: Ensure stats container respects viewport */
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .usage-stats-card {
     @apply relative p-3 bg-white/10 rounded-xl backdrop-blur-sm;
     /* Tablet & Desktop */
     @apply md:p-4 lg:p-5;
+    /* FIXED: Ensure card doesn't exceed container */
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .usage-stats-label {
@@ -91,12 +115,16 @@
     @apply flex items-center gap-2;
     /* Tablet & Desktop */
     @apply md:gap-3 lg:gap-4;
+    /* FIXED: Ensure bar container fits within card */
+    max-width: 100%;
   }
 
   .usage-stats-bar {
     @apply flex-1 bg-white/20 rounded-full h-2;
     /* Tablet & Desktop */
     @apply md:h-3 lg:h-3;
+    /* FIXED: Ensure bar respects container width */
+    min-width: 0;
   }
 
   .usage-stats-fill {
@@ -109,5 +137,42 @@
     @apply text-xs text-white/90;
     /* Tablet & Desktop */
     @apply md:text-sm lg:text-base;
+    /* FIXED: Prevent text from wrapping unexpectedly */
+    flex-shrink: 0;
+    white-space: nowrap;
   }
+
+  /* ========================================
+     PAGE HEADER SECTION - Standard page headers
+  ======================================== */
+
+  .page-header {
+    @apply text-center space-y-6;
+  }
+
+  .page-header-title {
+    @apply text-2xl font-bold text-gray-900 dark:text-white mb-2;
+    /* Tablet & Desktop */
+    @apply md:text-3xl lg:text-4xl;
+  }
+
+  .page-header-subtitle {
+    @apply text-gray-600 dark:text-gray-400 text-sm;
+    /* Tablet & Desktop */
+    @apply md:text-base lg:text-lg;
+  }
+
+  .page-content {
+    @apply space-y-6;
+  }
+
+  .page-content-area {
+    @apply min-h-96;
+  }
+
+
+
+
+
 }
+

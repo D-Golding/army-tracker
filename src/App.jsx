@@ -1,4 +1,4 @@
-// App.jsx - Professional Navigation with Lazy Loading for Data Cost Optimization
+// App.jsx - Fixed admin blog routing
 import React, { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -32,6 +32,9 @@ const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
 const UserDashboardLayout = lazy(() => import('./components/dashboard/UserDashboardLayout'));
 const CreatePostPage = lazy(() => import('./pages/CreatePostPage'));
 const MyPostsPage = lazy(() => import('./pages/MyPostsPage'));
+const BlogPage = lazy(() => import('./pages/BlogPage'));
+const BlogAdmin = lazy(() => import('./components/admin/BlogAdmin'));
+const BlogEditor = lazy(() => import('./components/blog/BlogEditor'));
 
 // Loading Spinner Component for Lazy Loading
 const LazyLoadingSpinner = () => (
@@ -201,6 +204,16 @@ const AppRouter = () => {
           }
         />
 
+        {/* Blog Routes - LAZY LOADED */}
+        <Route
+          path="blog/*"
+          element={
+            <Suspense fallback={<LazyLoadingSpinner />}>
+              <BlogPage />
+            </Suspense>
+          }
+        />
+
         {/* Messaging Route (Adults only) */}
         <Route
           path="messages/*"
@@ -234,11 +247,38 @@ const AppRouter = () => {
           </ProtectedRoute>
         }
       >
+        {/* Main Admin Dashboard */}
         <Route
           index
           element={
             <Suspense fallback={<LazyLoadingSpinner />}>
               <AdminDashboard />
+            </Suspense>
+          }
+        />
+
+        {/* Separate Blog Admin Routes - FIXED */}
+        <Route
+          path="blog"
+          element={
+            <Suspense fallback={<LazyLoadingSpinner />}>
+              <BlogAdmin />
+            </Suspense>
+          }
+        />
+        <Route
+          path="blog/new"
+          element={
+            <Suspense fallback={<LazyLoadingSpinner />}>
+              <BlogEditor mode="create" />
+            </Suspense>
+          }
+        />
+        <Route
+          path="blog/edit/:postId"
+          element={
+            <Suspense fallback={<LazyLoadingSpinner />}>
+              <BlogEditor mode="edit" />
             </Suspense>
           }
         />

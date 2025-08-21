@@ -1,7 +1,7 @@
-// components/paints/PaintProjectsModal.jsx
+// components/paints/PaintProjectsModal.jsx - Updated with cover photo thumbnails
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { X, ExternalLink, FolderPlus } from 'lucide-react';
+import { X, ExternalLink, FolderPlus, Camera } from 'lucide-react';
 import { getAllProjects } from '../../services/projects/index.js';
 
 const PaintProjectsModal = ({
@@ -47,6 +47,19 @@ const PaintProjectsModal = ({
       console.error('Error loading project details:', error);
     }
     setIsLoading(false);
+  };
+
+  // Get cover photo URL for a project
+  const getCoverPhoto = (project) => {
+    // Priority: coverPhotoURL > first photoURL > first photo from photos array
+    if (project.coverPhotoURL) return project.coverPhotoURL;
+    if (project.photoURLs && project.photoURLs.length > 0) return project.photoURLs[0];
+    if (project.photos && project.photos.length > 0) {
+      // Handle new photo format - could be string or object
+      const firstPhoto = project.photos[0];
+      return typeof firstPhoto === 'string' ? firstPhoto : firstPhoto.url;
+    }
+    return null;
   };
 
   // Get status styling
@@ -107,52 +120,87 @@ const PaintProjectsModal = ({
             </div>
           ) : (
             <div className="space-y-3">
-              {projects.map((project) => (
-                <div
-                  key={project.id}
-                  className="border border-gray-200 dark:border-gray-600 rounded-xl p-4"
-                >
-                  <div className="mb-3">
-                    <h4 className="font-medium text-gray-900 dark:text-white text-sm">
-                      {project.name}
-                    </h4>
+              {projects.map((project) => {
+                const coverPhoto = getCoverPhoto(project);
 
-                    {project.description && (
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
-                        {project.description}
-                      </p>
-                    )}
-
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className={`badge-base ${getStatusStyling(project.status)} text-xs`}>
-                        {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
-                      </span>
-
-                      {project.difficulty && (
-                        <span className="badge-tertiary text-xs">
-                          {project.difficulty}
-                        </span>
-                      )}
-
-                      {project.steps && project.steps.length > 0 && (
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {project.steps.length} step{project.steps.length !== 1 ? 's' : ''}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Go to Project Button */}
-                  <Link
-                    to={`/app/projects/${project.id}`}
-                    onClick={handleClose}
-                    className="btn-primary btn-sm w-full flex items-center justify-center gap-2"
+                return (
+                  <div
+                    key={project.id}
+                    className="border border-gray-200 dark:border-gray-600 rounded-xl p-4"
                   >
-                    <ExternalLink size={14} />
-                    Go to project
-                  </Link>
-                </div>
-              ))}
+                    {/* Project Content with Cover Photo */}
+                    <div className="flex gap-3 mb-3">
+
+                      {/* Cover Photo Thumbnail */}
+                      <div className="flex-shrink-0">
+                        <div className="w-16 h-16 md:w-20 md:h-20 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                          {coverPhoto ? (
+                            <img
+                              src={coverPhoto}
+                              alt={`${project.name} cover`}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                // If image fails to load, show placeholder
+                                e.target.style.display = 'none';
+                                e.target.nextElementSibling.style.display = 'flex';
+                              }}
+                            />
+                          ) : null}
+
+                          {/* Placeholder for missing cover photo */}
+                          <div
+                            className="w-full h-full flex items-center justify-center text-gray-400"
+                            style={{ display: coverPhoto ? 'none' : 'flex' }}
+                          >
+                            <Camera size={20} />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Project Info */}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-gray-900 dark:text-white text-sm">
+                          {project.name}
+                        </h4>
+
+                        {project.description && (
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
+                            {project.description}
+                          </p>
+                        )}
+
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className={`badge-base ${getStatusStyling(project.status)} text-xs`}>
+                            {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
+                          </span>
+
+                          {project.difficulty && (
+                            <span className="badge-tertiary text-xs">
+                              {project.difficulty}
+                            </span>
+                          )}
+
+                          {project.steps && project.steps.length > 0 && (
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              {project.steps.length} step{project.steps.length !== 1 ? 's' : ''}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Go to Project Button */}
+                    <Link
+                      to={`/app/projects/${project.id}`}
+                      onClick={handleClose}
+                      className="btn-primary btn-sm w-full flex items-center justify-center gap-2"
+                    >
+                      <ExternalLink size={14} />
+                      Go to project
+                    </Link>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

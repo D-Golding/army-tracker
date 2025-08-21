@@ -1,0 +1,131 @@
+/* src/styles/components/photo-modal.css - Photo modal component styling */
+
+@layer components {
+  /* ========================================
+     MODAL BACKDROP & CONTAINER
+  ======================================== */
+
+  .photo-modal-backdrop {
+    @apply fixed inset-0 bg-black bg-opacity-95 z-[9999] flex items-center justify-center;
+  }
+
+  .photo-modal-container {
+    @apply relative w-full h-full flex items-center justify-center p-4 cursor-pointer;
+  }
+
+  .photo-modal-image {
+    @apply max-w-full max-h-full object-contain transition-transform duration-300;
+  }
+
+  .photo-modal-image-zoomed {
+    @apply photo-modal-image transform scale-150 cursor-zoom-out;
+  }
+
+  .photo-modal-image-normal {
+    @apply photo-modal-image cursor-zoom-in;
+  }
+
+  /* ========================================
+     MODAL CONTROLS
+  ======================================== */
+
+  .photo-modal-control-button {
+    @apply absolute z-10 p-2 bg-black bg-opacity-50 hover:bg-opacity-70 text-white rounded-full transition-all;
+  }
+
+  .photo-modal-close {
+    @apply photo-modal-control-button top-4 right-4;
+  }
+
+  .photo-modal-zoom {
+    @apply photo-modal-control-button top-4 left-1/2 transform -translate-x-1/2;
+  }
+
+  .photo-modal-nav-button {
+    @apply photo-modal-control-button top-1/2 transform -translate-y-1/2 p-3;
+  }
+
+  .photo-modal-nav-prev {
+    @apply photo-modal-nav-button left-4;
+  }
+
+  .photo-modal-nav-next {
+    @apply photo-modal-nav-button right-4;
+  }
+
+  /* ========================================
+     PHOTO COUNTER
+  ======================================== */
+
+  .photo-modal-counter {
+    @apply absolute top-4 left-4 z-10 bg-black bg-opacity-50 text-white px-3 py-1 rounded-full text-sm;
+  }
+
+  /* ========================================
+     BOTTOM INFO PANEL
+  ======================================== */
+
+  .photo-modal-info-panel {
+    @apply absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-6 pt-12;
+  }
+
+  .photo-modal-metadata {
+    @apply text-white mb-4;
+  }
+
+  .photo-modal-title {
+    @apply text-lg font-semibold mb-1;
+  }
+
+  .photo-modal-description {
+    @apply text-sm text-gray-300;
+  }
+
+  .photo-modal-author {
+    @apply flex items-center gap-3 text-white text-sm;
+  }
+
+  .photo-modal-author-avatar {
+    @apply w-6 h-6 rounded-full;
+  }
+
+  .photo-modal-author-placeholder {
+    @apply w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center;
+  }
+
+  .photo-modal-author-initial {
+    @apply text-xs;
+  }
+
+  /* ========================================
+     THUMBNAIL NAVIGATION
+  ======================================== */
+
+  .photo-modal-thumbnails {
+    @apply flex justify-center gap-2 mt-4 overflow-x-auto;
+  }
+
+  .photo-modal-thumbnail {
+    @apply flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 transition-all;
+  }
+
+  .photo-modal-thumbnail-active {
+    @apply photo-modal-thumbnail border-white opacity-100;
+  }
+
+  .photo-modal-thumbnail-inactive {
+    @apply photo-modal-thumbnail border-transparent opacity-60 hover:opacity-80;
+  }
+
+  .photo-modal-thumbnail-image {
+    @apply w-full h-full object-cover;
+  }
+
+  /* ========================================
+     INSTRUCTIONS PANEL
+  ======================================== */
+
+  .photo-modal-instructions {
+    @apply absolute bottom-4 right-4 text-white text-xs bg-black bg-opacity-50 px-3 py-2 rounded-lg;
+  }
+}

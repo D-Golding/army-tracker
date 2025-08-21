@@ -1,4 +1,4 @@
-// components/layouts/HeaderBanner.jsx - Updated to use global styles
+// components/layouts/HeaderBanner.jsx - Updated for new dark mode hook
 import React from 'react';
 import { Moon, Sun } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -9,8 +9,9 @@ import BannerBackground from '../shared/BannerBackground';
 const HeaderBanner = ({ darkMode, setDarkMode }) => {
   const { currentUser, userProfile } = useAuth();
 
+  // setDarkMode is now the toggleDarkMode function from the hook
   const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
+    setDarkMode(); // This calls toggleDarkMode from useDarkMode hook
   };
 
   // Get display name with proper fallback logic
@@ -57,6 +58,7 @@ const HeaderBanner = ({ darkMode, setDarkMode }) => {
           <button
             onClick={toggleDarkMode}
             className="header-control-btn"
+            title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {darkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>

@@ -1,7 +1,8 @@
 // components/paints/PaintList/components/PaintListHeader.jsx
 import React from 'react';
-import { Plus, X, Trash2, Zap } from 'lucide-react';
+import { Plus, X, Trash2, Zap, Info } from 'lucide-react';
 import SummaryCards from '../summaryCards.jsx';
+import PaintSearchFilter from '../PaintSearchFilter';
 
 const PaintListHeader = ({
   summary,
@@ -15,12 +16,22 @@ const PaintListHeader = ({
   onFilterClick,
   onAddPaintClick,
   onToggleBulkDelete,
-  isOperationLoading = false
+  isOperationLoading = false,
+  // New props for search/filters
+  activeFilters,
+  onFiltersChange,
+  onShowDisclaimer
 }) => {
   return (
     <>
       {/* Summary Cards */}
       <SummaryCards summary={summary} onFilterClick={onFilterClick} />
+
+      {/* Search and Filters */}
+      <PaintSearchFilter
+        onFiltersChange={onFiltersChange}
+        initialFilters={activeFilters}
+      />
 
       {/* Action Buttons */}
       <div className="paint-actions-container">
@@ -57,6 +68,20 @@ const PaintListHeader = ({
             {bulkDeleteMode ? <X size={20} /> : <Trash2 size={20} />}
           </button>
         </div>
+
+        {/* Disclaimer Section */}
+        {totalPaintsCount > 0 && (
+          <div className="mb-4 flex justify-end items-center">
+            <button
+              onClick={onShowDisclaimer}
+              className="flex items-center gap-2 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+              title="Paint reference disclaimer"
+            >
+              <Info size={16} className="w-4 h-4 border border-current rounded-full" />
+              <span className="text-sm">Disclaimer</span>
+            </button>
+          </div>
+        )}
       </div>
     </>
   );

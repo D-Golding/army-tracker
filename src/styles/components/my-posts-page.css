@@ -1,0 +1,291 @@
+/* src/styles/components/my-posts-page.css - My posts page styling */
+
+@layer components {
+  /* ========================================
+     MY POSTS PAGE LAYOUT
+  ======================================== */
+
+  .my-posts-wrapper {
+    @apply min-h-screen bg-gray-50 dark:bg-gray-900;
+  }
+
+  .my-posts-container {
+    @apply max-w-4xl mx-auto bg-white dark:bg-gray-800 min-h-screen;
+  }
+
+  .my-posts-header {
+    @apply bg-indigo-600 text-white p-6 pt-12;
+  }
+
+  .my-posts-header-content {
+    @apply flex items-center gap-3 mb-4;
+  }
+
+  .my-posts-back-button {
+    @apply p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors;
+  }
+
+  .my-posts-title {
+    @apply text-xl font-bold;
+  }
+
+  .my-posts-subtitle {
+    @apply text-white/90 text-sm;
+  }
+
+  /* ========================================
+     STATS GRID
+  ======================================== */
+
+  .my-posts-stats {
+    @apply grid grid-cols-4 gap-4 mb-4;
+  }
+
+  .my-posts-stat-item {
+    @apply text-center;
+  }
+
+  .my-posts-stat-value {
+    @apply text-2xl font-bold;
+  }
+
+  .my-posts-stat-label {
+    @apply text-xs text-white/80;
+  }
+
+  /* ========================================
+     CONTROLS SECTION
+  ======================================== */
+
+  .my-posts-controls {
+    @apply p-6 border-b border-gray-200 dark:border-gray-700;
+  }
+
+  .my-posts-search-row {
+    @apply flex gap-4 mb-4;
+  }
+
+  .my-posts-search-container {
+    @apply flex-1 relative;
+  }
+
+  .my-posts-search-icon {
+    @apply absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400;
+  }
+
+  .my-posts-search-input {
+    @apply form-input pl-10;
+  }
+
+  .my-posts-new-post-button {
+    @apply btn-primary btn-md;
+  }
+
+  .my-posts-filter-row {
+    @apply flex gap-4;
+  }
+
+  .my-posts-filter-group {
+    @apply flex items-center gap-2;
+  }
+
+  .my-posts-filter-icon {
+    @apply text-gray-400;
+  }
+
+  .my-posts-filter-select {
+    @apply form-select text-sm;
+  }
+
+  /* ========================================
+     CONTENT AREA
+  ======================================== */
+
+  .my-posts-content {
+    @apply p-6;
+  }
+
+  /* ========================================
+     POST MANAGEMENT CARDS
+  ======================================== */
+
+  .post-management-card {
+    @apply card-base card-padding;
+  }
+
+  .post-management-header {
+    @apply flex items-start justify-between mb-4;
+  }
+
+  .post-management-meta {
+    @apply flex-1;
+  }
+
+  .post-management-meta-row {
+    @apply flex items-center gap-2 mb-2;
+  }
+
+  .post-management-timestamp {
+    @apply text-sm text-gray-500 dark:text-gray-400;
+  }
+
+  .post-management-content {
+    @apply text-gray-900 dark:text-white text-sm line-clamp-3;
+  }
+
+  .post-management-menu {
+    @apply relative ml-4;
+  }
+
+  .post-management-menu-button {
+    @apply p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors;
+  }
+
+  /* ========================================
+     POST PHOTOS GRID
+  ======================================== */
+
+  .post-photos-single {
+    @apply relative rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 cursor-pointer;
+  }
+
+  .post-photos-single-image {
+    @apply w-full h-48 object-cover transition-transform group-hover:scale-105;
+  }
+
+  .post-photos-single-overlay {
+    @apply absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity;
+  }
+
+  .post-photos-grid {
+    @apply grid gap-1 rounded-lg overflow-hidden;
+  }
+
+  .post-photos-grid-2 {
+    @apply post-photos-grid grid-cols-2;
+  }
+
+  .post-photos-grid-3 {
+    @apply post-photos-grid grid-cols-3;
+  }
+
+  .post-photos-grid-item {
+    @apply relative bg-gray-100 dark:bg-gray-700 cursor-pointer;
+  }
+
+  .post-photos-grid-item-image {
+    @apply w-full h-full object-cover transition-transform group-hover:scale-105;
+  }
+
+  .post-photos-grid-item-overlay {
+    @apply absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity;
+  }
+
+  .post-photos-grid-more {
+    @apply absolute inset-0 bg-black bg-opacity-60 flex items-center justify-center;
+  }
+
+  .post-photos-grid-more-text {
+    @apply text-white font-semibold;
+  }
+
+  .post-photos-grid-square {
+    @apply aspect-square;
+  }
+
+  .post-photos-grid-tall {
+    @apply row-span-2;
+  }
+
+  /* ========================================
+     POST STATS
+  ======================================== */
+
+  .post-stats-bar {
+    @apply flex items-center justify-between py-2 border-t border-gray-200 dark:border-gray-700;
+  }
+
+  .post-stats-info {
+    @apply flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400;
+  }
+
+  .post-stats-item {
+    @apply flex items-center gap-1;
+  }
+
+  .post-stats-actions {
+    @apply flex gap-2;
+  }
+
+  .post-edit-button {
+    @apply btn-tertiary btn-sm;
+  }
+
+  /* ========================================
+     LOADING STATES
+  ======================================== */
+
+  .my-posts-loading {
+    @apply space-y-4;
+  }
+
+  .my-posts-loading-card {
+    @apply card-base card-padding animate-pulse;
+  }
+
+  .my-posts-loading-content {
+    @apply space-y-3;
+  }
+
+  .my-posts-loading-title {
+    @apply h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4;
+  }
+
+  .my-posts-loading-image {
+    @apply aspect-video bg-gray-200 dark:bg-gray-700 rounded-xl;
+  }
+
+  .my-posts-loading-actions {
+    @apply flex gap-4;
+  }
+
+  .my-posts-loading-button {
+    @apply h-8 bg-gray-200 dark:bg-gray-700 rounded;
+  }
+
+  /* ========================================
+     ERROR & EMPTY STATES
+  ======================================== */
+
+  .my-posts-error-state {
+    @apply text-center py-12;
+  }
+
+  .my-posts-error-icon {
+    @apply text-red-500 mb-4;
+  }
+
+  .my-posts-error-title {
+    @apply text-lg font-semibold text-gray-900 dark:text-white mb-2;
+  }
+
+  .my-posts-error-text {
+    @apply text-gray-600 dark:text-gray-400 mb-4;
+  }
+
+  .my-posts-empty-state {
+    @apply text-center py-12;
+  }
+
+  .my-posts-empty-icon {
+    @apply text-gray-400 mb-4;
+  }
+
+  .my-posts-empty-title {
+    @apply text-lg font-semibold text-gray-900 dark:text-white mb-2;
+  }
+
+  .my-posts-empty-text {
+    @apply text-gray-600 dark:text-gray-400 mb-4;
+  }
+}

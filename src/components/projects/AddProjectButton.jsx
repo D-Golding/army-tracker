@@ -27,23 +27,25 @@ const AddProjectButton = ({ isLoading = false, showUpgradeModal }) => {
   };
 
   return (
-    <button
-      onClick={handleClick}
-      disabled={isLoading}
-      className="btn-md flex-1 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg transition-all mb-4 w-full"
-    >
-      {hasReachedProjectLimit ? (
-        <>
-          <Zap className="inline-block mr-2" size={20} />
-          Upgrade to add more ({usage.projects}/{limits.projects})
-        </>
-      ) : (
-        <>
-          <Plus className="inline-block mr-2" size={20} />
-          Add New Project ({usage.projects}/{limits.projects})
-        </>
-      )}
-    </button>
+    <div className="summary-cards-container">
+      <button
+        onClick={handleClick}
+        disabled={isLoading}
+        className="btn-md flex-1 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg transition-all mb-4 w-full"
+      >
+        {hasReachedProjectLimit ? (
+          <>
+            <Zap className="inline-block mr-2" size={20} />
+            Upgrade to add more ({usage.projects}/{limits.projects})
+          </>
+        ) : (
+          <>
+            <Plus className="inline-block mr-2" size={20} />
+            Add New Project ({usage.projects}/{limits.projects})
+          </>
+        )}
+      </button>
+    </div>
   );
 };
 

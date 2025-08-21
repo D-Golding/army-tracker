@@ -6,7 +6,6 @@ import { usePaintOperations } from '../../hooks/usePaints';
 import { getAllPaints } from '../../services/paints/index.js';
 import PaintListHeader from '../paints/PaintList/PaintListHeader';
 import BulkDeleteControls from '../paints/PaintList/BulkDeleteControls.jsx';
-import PaintListFilters from '../paints/PaintList/PaintListFilters';
 import PaintGrid from '../paints/PaintList/PaintGrid';
 import PaintListModals from '../paints/PaintList/PaintListModals';
 import BackToTopButton from '../paints/PaintList/BackToTopButton';
@@ -218,6 +217,10 @@ const PaintList = () => {
         onAddPaintClick={handleAddPaintClick}
         onToggleBulkDelete={toggleBulkDeleteMode}
         isOperationLoading={isOperationLoading}
+        // New props for search/filters
+        activeFilters={activeFilters}
+        onFiltersChange={handleFiltersChange}
+        onShowDisclaimer={() => setShowDisclaimer(true)}
       />
 
       {bulkDeleteMode && (
@@ -232,13 +235,6 @@ const PaintList = () => {
           isOperationLoading={isOperationLoading}
         />
       )}
-
-      <PaintListFilters
-        activeFilters={activeFilters}
-        onFiltersChange={handleFiltersChange}
-        totalPaintsCount={totalPaintsCount}
-        onShowDisclaimer={() => setShowDisclaimer(true)}
-      />
 
       <PaintGrid
         paints={filteredPaints}

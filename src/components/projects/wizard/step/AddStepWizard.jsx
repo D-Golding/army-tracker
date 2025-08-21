@@ -1,4 +1,4 @@
-// components/projects/wizard/step/AddStepWizard.jsx - Main wizard orchestrator
+// components/projects/wizard/step/AddStepWizard.jsx - Simplified to 2 steps
 import React, { useState } from 'react';
 import { useStepWizard } from '../../../../hooks/useStepWizard';
 import { useStepFormData } from '../../../../hooks/useStepFormData';
@@ -6,9 +6,6 @@ import WizardStepIndicator from './WizardStepIndicator';
 import WizardNavigation from './WizardNavigation';
 import StepDetailsForm from './StepDetailsForm';
 import StepPaintsForm from './StepPaintsForm';
-import StepPhotosForm from './StepPhotosForm';
-import StepNotesForm from './StepNotesForm';
-import StepReviewForm from './StepReviewForm';
 
 const AddStepWizard = ({
   onSubmit,
@@ -25,12 +22,7 @@ const AddStepWizard = ({
     updateField,
     addPaint,
     removePaint,
-    updatePaint,
-    addPhotos,
-    removePhoto,
-    addNote,
-    updateNote,
-    removeNote
+    updatePaint
   } = useStepFormData();
 
   const {
@@ -59,10 +51,10 @@ const AddStepWizard = ({
     const stepData = {
       title: formData.title.trim(),
       description: formData.description.trim(),
-      stepPhoto: formData.stepPhoto, // Include the step photo
+      stepPhoto: formData.stepPhoto,
       paints: formData.paints,
-      photos: formData.photos,
-      notes: formData.notes
+      photos: [], // Empty arrays for photos and notes since they're not collected in wizard
+      notes: []
     };
 
     console.log('📄 Submitting step data:', stepData);
@@ -80,7 +72,6 @@ const AddStepWizard = ({
   const handleNext = () => {
     goNext();
     setError(null);
-    // Scroll to top when moving to next step
     if (onNextStep) {
       onNextStep();
     }
@@ -89,7 +80,6 @@ const AddStepWizard = ({
   const handlePrevious = () => {
     goPrevious();
     setError(null);
-    // Scroll to top when moving to previous step
     if (onNextStep) {
       onNextStep();
     }
@@ -98,7 +88,6 @@ const AddStepWizard = ({
   const handleStepClick = (stepIndex) => {
     goToStep(stepIndex);
     setError(null);
-    // Scroll to top when clicking on step indicator
     if (onNextStep) {
       onNextStep();
     }
@@ -127,7 +116,7 @@ const AddStepWizard = ({
             error={error}
             isLoading={isLoading}
             stepNumber={stepNumber}
-            projectData={projectData} // ← Added projectData prop
+            projectData={projectData}
           />
         );
 
@@ -139,34 +128,6 @@ const AddStepWizard = ({
             onPaintAssigned={addPaint}
             onPaintRemoved={removePaint}
             onPaintUpdated={updatePaint}
-          />
-        );
-
-      case 'photos':
-        return (
-          <StepPhotosForm
-            formData={formData}
-            projectData={projectData}
-            onPhotosAdded={addPhotos}
-            onPhotoRemoved={removePhoto}
-          />
-        );
-
-      case 'notes':
-        return (
-          <StepNotesForm
-            formData={formData}
-            onNoteAdded={addNote}
-            onNoteUpdated={updateNote}
-            onNoteDeleted={removeNote}
-          />
-        );
-
-      case 'review':
-        return (
-          <StepReviewForm
-            formData={formData}
-            stepNumber={stepNumber}
           />
         );
 
