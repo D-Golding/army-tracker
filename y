@@ -1,4 +1,4 @@
-rules_version = '2';
+touch .envrules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {

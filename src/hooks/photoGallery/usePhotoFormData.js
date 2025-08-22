@@ -1,9 +1,13 @@
-// hooks/photoGallery/usePhotoFormData.js - Updated for new crop step flow
+// hooks/usePhotoFormData.js - Updated for mixed photo/video support
 import { useState, useCallback } from 'react';
 
 export const usePhotoFormData = () => {
   const [formData, setFormData] = useState({
-    files: []
+    files: [],
+    caption: '',
+    tags: [],
+    visibility: 'public',
+    copyrightAccepted: false
   });
 
   // Generate unique ID for files
@@ -25,39 +29,13 @@ export const usePhotoFormData = () => {
   const addFiles = useCallback((newFiles) => {
     if (!newFiles || newFiles.length === 0) return;
 
-    const processedFiles = newFiles.map(file => {
-      const fileId = generateFileId();
-      const previewUrl = createPreviewUrl(file);
-
-      return {
-        id: fileId,
-        originalFile: file,
-        fileName: file.name,
-        fileSize: file.size,
-        fileType: file.type,
-        previewUrl,
-        metadata: {
-          title: '',
-          description: '',
-          tags: []
-        },
-        editData: {
-          isProcessed: false,
-          skipEditing: false,
-          croppedBlob: null,
-          croppedPreviewUrl: null,
-          aspectRatio: 'original',
-          cropSettings: null
-        }
-      };
-    });
-
+    // Files come pre-processed from MediaSelectionStep with type already set
     setFormData(prev => ({
       ...prev,
-      files: [...prev.files, ...processedFiles]
+      files: [...prev.files, ...newFiles]
     }));
 
-    console.log('📁 Added files to form data:', processedFiles.map(f => f.fileName));
+    console.log('📁 Added files to form data:', newFiles.map(f => `${f.fileName} (${f.type})`));
   }, []);
 
   // Remove a file from the form data
@@ -70,8 +48,8 @@ export const usePhotoFormData = () => {
         if (fileToRemove.previewUrl) {
           URL.revokeObjectURL(fileToRemove.previewUrl);
         }
-        if (fileToRemove.editData?.croppedPreviewUrl) {
-          URL.revokeObjectURL(fileToRemove.editData.croppedPreviewUrl);
+        if (fileToRemove.editData?.processedPreviewUrl) {
+          URL.revokeObjectURL(fileToRemove.editData.processedPreviewUrl);
         }
       }
 
@@ -104,7 +82,7 @@ export const usePhotoFormData = () => {
     console.log('🏷️ Updated file metadata:', fileId, metadata);
   }, []);
 
-  // Update file edit data (for cropping step)
+  // Update file edit data (for cropping/trimming)
   const updateFileEditData = useCallback((fileId, editData) => {
     setFormData(prev => ({
       ...prev,
@@ -124,6 +102,21 @@ export const usePhotoFormData = () => {
     console.log('✂️ Updated file edit data:', fileId, editData);
   }, []);
 
+  // Update post data (caption, tags, etc.)
+  const updatePostData = useCallback((data) => {
+    setFormData(prev => ({
+      ...prev,
+      ...data
+    }));
+
+    console.log('📝 Updated post data:', data);
+  }, []);
+
+  // Get files by type
+  const getFilesByType = useCallback((type) => {
+    return formData.files.filter(f => f.type === type);
+  }, [formData.files]);
+
   // Get files by processing status
   const getFilesByStatus = useCallback((status) => {
     switch (status) {
@@ -131,8 +124,8 @@ export const usePhotoFormData = () => {
         return formData.files.filter(f => !f.editData?.isProcessed);
       case 'processed':
         return formData.files.filter(f => f.editData?.isProcessed);
-      case 'cropped':
-        return formData.files.filter(f => f.editData?.isProcessed && f.editData?.croppedBlob && !f.editData?.skipEditing);
+      case 'edited':
+        return formData.files.filter(f => f.editData?.isProcessed && !f.editData?.skipEditing);
       case 'original':
         return formData.files.filter(f => f.editData?.isProcessed && f.editData?.skipEditing);
       default:
@@ -140,7 +133,7 @@ export const usePhotoFormData = () => {
     }
   }, [formData.files]);
 
-  // Check if all files are processed
+  // Check if all files are processed (ready for upload)
   const areAllFilesProcessed = useCallback(() => {
     if (formData.files.length === 0) return true;
     return formData.files.every(f => f.editData?.isProcessed === true);
@@ -150,15 +143,17 @@ export const usePhotoFormData = () => {
   const getProcessingStats = useCallback(() => {
     const total = formData.files.length;
     const processed = formData.files.filter(f => f.editData?.isProcessed).length;
-    const cropped = formData.files.filter(f => f.editData?.isProcessed && f.editData?.croppedBlob && !f.editData?.skipEditing).length;
-    const original = formData.files.filter(f => f.editData?.isProcessed && f.editData?.skipEditing).length;
+    const photos = formData.files.filter(f => f.type === 'photo').length;
+    const videos = formData.files.filter(f => f.type === 'video').length;
+    const edited = formData.files.filter(f => f.editData?.isProcessed && !f.editData?.skipEditing).length;
 
     return {
       total,
       processed,
       unprocessed: total - processed,
-      cropped,
-      original,
+      photos,
+      videos,
+      edited,
       progressPercentage: total > 0 ? (processed / total) * 100 : 0
     };
   }, [formData.files]);
@@ -170,23 +165,30 @@ export const usePhotoFormData = () => {
       if (file.previewUrl) {
         URL.revokeObjectURL(file.previewUrl);
       }
-      if (file.editData?.croppedPreviewUrl) {
-        URL.revokeObjectURL(file.editData.croppedPreviewUrl);
+      if (file.editData?.processedPreviewUrl) {
+        URL.revokeObjectURL(file.editData.processedPreviewUrl);
       }
     });
 
-    setFormData({ files: [] });
+    setFormData({
+      files: [],
+      caption: '',
+      tags: [],
+      visibility: 'public',
+      copyrightAccepted: false
+    });
+
     console.log('🧹 Cleared form data');
   }, [formData.files]);
 
-  // Reset processing for all files (useful for re-editing)
+  // Reset processing for all files
   const resetProcessing = useCallback(() => {
     setFormData(prev => ({
       ...prev,
       files: prev.files.map(file => {
-        // Clean up cropped preview URL if it exists
-        if (file.editData?.croppedPreviewUrl) {
-          URL.revokeObjectURL(file.editData.croppedPreviewUrl);
+        // Clean up processed preview URL if it exists
+        if (file.editData?.processedPreviewUrl) {
+          URL.revokeObjectURL(file.editData.processedPreviewUrl);
         }
 
         return {
@@ -194,10 +196,10 @@ export const usePhotoFormData = () => {
           editData: {
             isProcessed: false,
             skipEditing: false,
-            croppedBlob: null,
-            croppedPreviewUrl: null,
-            aspectRatio: 'original',
-            cropSettings: null
+            processedBlob: null,
+            processedPreviewUrl: null,
+            trimData: file.type === 'video' ? { start: 0, end: 0 } : null,
+            aspectRatio: 'original'
           }
         };
       })
@@ -206,7 +208,7 @@ export const usePhotoFormData = () => {
     console.log('🔄 Reset processing for all files');
   }, []);
 
-  // Auto-process all files (skip cropping for all)
+  // Auto-process all files (skip editing for all)
   const autoProcessAllFiles = useCallback(() => {
     setFormData(prev => ({
       ...prev,
@@ -216,25 +218,42 @@ export const usePhotoFormData = () => {
           ...file.editData,
           isProcessed: true,
           skipEditing: true,
-          croppedBlob: null,
-          croppedPreviewUrl: null,
-          aspectRatio: 'original',
-          cropSettings: null
+          processedBlob: null,
+          processedPreviewUrl: null,
+          trimData: null,
+          aspectRatio: 'original'
         }
       }))
     }));
 
-    console.log('⏭️ Auto-processed all files (skipped cropping)');
+    console.log('⭐ Auto-processed all files (skipped editing)');
   }, []);
 
-  // Validate form data
+  // Validate form data for submission
   const validateFormData = useCallback(() => {
     const errors = [];
 
+    // Check we have files
     if (formData.files.length === 0) {
       errors.push('No files selected');
     }
 
+    // Check caption
+    if (!formData.caption || !formData.caption.trim()) {
+      errors.push('Caption is required');
+    }
+
+    // Check copyright acceptance
+    if (!formData.copyrightAccepted) {
+      errors.push('You must accept the copyright terms');
+    }
+
+    // Check all files are processed
+    if (!areAllFilesProcessed()) {
+      errors.push('Some files still need to be processed');
+    }
+
+    // Validate individual files
     formData.files.forEach(file => {
       if (!file.originalFile) {
         errors.push(`${file.fileName}: Missing original file`);
@@ -242,7 +261,7 @@ export const usePhotoFormData = () => {
       if (!file.id) {
         errors.push(`${file.fileName}: Missing file ID`);
       }
-      if (!file.previewUrl && !file.editData?.croppedPreviewUrl) {
+      if (!file.previewUrl && !file.editData?.processedPreviewUrl) {
         errors.push(`${file.fileName}: Missing preview URL`);
       }
     });
@@ -251,7 +270,54 @@ export const usePhotoFormData = () => {
       isValid: errors.length === 0,
       errors
     };
-  }, [formData]);
+  }, [formData, areAllFilesProcessed]);
+
+  // Check if we can proceed to next step
+  const canProceedToStep = useCallback((step) => {
+    switch (step) {
+      case 1: // Selection step
+        return formData.files.length > 0;
+      case 2: // Details step - need files and they should be processed
+        return formData.files.length > 0 && areAllFilesProcessed();
+      case 3: // Privacy step - need caption too
+        return formData.files.length > 0 &&
+               areAllFilesProcessed() &&
+               formData.caption?.trim().length > 0;
+      case 4: // Ready to submit
+        return validateFormData().isValid;
+      default:
+        return false;
+    }
+  }, [formData, areAllFilesProcessed, validateFormData]);
+
+  // Get submission data (prepared for upload)
+  const getSubmissionData = useCallback(async () => {
+    const validation = validateFormData();
+    if (!validation.isValid) {
+      throw new Error(`Form validation failed: ${validation.errors.join(', ')}`);
+    }
+
+    // Prepare files for upload
+    const preparedFiles = formData.files.map(file => {
+      const fileToUpload = file.editData?.processedBlob || file.originalFile;
+
+      return {
+        id: file.id,
+        type: file.type,
+        file: fileToUpload,
+        metadata: file.metadata,
+        editData: file.editData,
+        originalName: file.fileName
+      };
+    });
+
+    return {
+      files: preparedFiles,
+      caption: formData.caption.trim(),
+      tags: formData.tags || [],
+      visibility: formData.visibility || 'public'
+    };
+  }, [formData, validateFormData]);
 
   return {
     // Form data
@@ -264,15 +330,23 @@ export const usePhotoFormData = () => {
     updateFileMetadata,
     updateFileEditData,
 
+    // Post data operations
+    updatePostData,
+
     // File queries
+    getFilesByType,
     getFilesByStatus,
     areAllFilesProcessed,
     getProcessingStats,
+
+    // Step validation
+    canProceedToStep,
 
     // Form operations
     clearForm,
     resetProcessing,
     autoProcessAllFiles,
-    validateFormData
+    validateFormData,
+    getSubmissionData
   };
 };

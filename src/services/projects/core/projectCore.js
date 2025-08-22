@@ -1,4 +1,4 @@
-// services/projects/core/projectCore.js - Handle new photo structure
+// services/projects/core/projectCore.js - Handle new photo structure + faction/unitName fields
 import {
   collection,
   addDoc,
@@ -11,7 +11,7 @@ import { db } from '../../../firebase.js';
 import { getCurrentUserId, getUserProjectsCollection } from '../../shared/userHelpers.js';
 import { DEFAULTS } from '../../shared/constants.js';
 
-// UPDATED createProject to accept new data structure with photo metadata
+// UPDATED createProject to accept new data structure with photo metadata + new fields
 export const createProject = async (projectData) => {
   const projectsCollection = getUserProjectsCollection();
 
@@ -66,11 +66,13 @@ export const createProject = async (projectData) => {
     }];
   }
 
-  // Build the project document
+  // Build the project document - UPDATED with new fields
   const documentData = {
     name: projectData.name,
     manufacturer: projectData.manufacturer || '',
     game: projectData.game || '',
+    faction: projectData.faction || '', // NEW FIELD
+    unitName: projectData.unitName || '', // NEW FIELD
     description: projectData.description || '',
     status: projectData.status || DEFAULTS.PROJECT_STATUS,
     difficulty: projectData.difficulty || DEFAULTS.PROJECT_DIFFICULTY,

@@ -1,9 +1,25 @@
-// components/projects/ProjectPhotoGallery.jsx - Responsive photo sizes for better tablet/desktop experience
+// components/projects/ProjectPhotoGallery.jsx - Updated to hide default images from gallery
 import React, { useState } from 'react';
 import { Camera, Star, X, Trash2, Eye, Edit, Save } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSubscription } from '../../hooks/useSubscription';
 import ConfirmationModal from '../common/ConfirmationModal';
+
+// Helper function to check if a photo is a default placeholder
+const isDefaultImage = (photoUrl) => {
+  if (!photoUrl) return false;
+
+  // Common patterns for default images
+  const defaultPatterns = [
+    'default-project-cover',
+    'placeholder',
+    'default-cover',
+    'project-placeholder',
+    // Add any other patterns your app uses for default images
+  ];
+
+  return defaultPatterns.some(pattern => photoUrl.includes(pattern));
+};
 
 const ProjectPhotoGallery = ({
   projectData,
@@ -47,15 +63,26 @@ const ProjectPhotoGallery = ({
     return photo;
   };
 
-  // Get all photo URLs for comparison and operations
-  const photoUrls = projectPhotos.map(getPhotoUrl);
+  // Filter out default images from gallery display
+  const realPhotos = projectPhotos.filter(photo => {
+    const photoUrl = getPhotoUrl(photo);
+    return !isDefaultImage(photoUrl);
+  });
 
-  // Auto-set first photo as cover if no cover is set and photos exist
+  // Get all photo URLs for comparison and operations (including defaults for cover photo logic)
+  const allPhotoUrls = projectPhotos.map(getPhotoUrl);
+  const realPhotoUrls = realPhotos.map(getPhotoUrl);
+
+  // Check if we only have default images
+  const hasOnlyDefaultImages = realPhotos.length === 0 && projectPhotos.length > 0;
+  const hasRealPhotos = realPhotos.length > 0;
+
+  // Auto-set first real photo as cover if no cover is set and real photos exist
   React.useEffect(() => {
-    if (photoUrls.length > 0 && !coverPhotoURL) {
-      onCoverPhotoSet(photoUrls[0]);
+    if (hasRealPhotos && (!coverPhotoURL || isDefaultImage(coverPhotoURL))) {
+      onCoverPhotoSet(realPhotoUrls[0]);
     }
-  }, [photoUrls, coverPhotoURL, onCoverPhotoSet]);
+  }, [realPhotoUrls, coverPhotoURL, onCoverPhotoSet, hasRealPhotos]);
 
   // Handle setting cover photo
   const handleSetCoverPhoto = async (photoUrl) => {
@@ -80,9 +107,9 @@ const ProjectPhotoGallery = ({
 
       // If deleted photo was cover, set new cover or clear it
       if (showDeleteConfirm === coverPhotoURL) {
-        const remainingUrls = photoUrls.filter(url => url !== showDeleteConfirm);
-        if (remainingUrls.length > 0) {
-          await onCoverPhotoSet(remainingUrls[0]);
+        const remainingRealUrls = realPhotoUrls.filter(url => url !== showDeleteConfirm);
+        if (remainingRealUrls.length > 0) {
+          await onCoverPhotoSet(remainingRealUrls[0]);
         } else {
           await onCoverPhotoSet(null);
         }
@@ -155,8 +182,8 @@ const ProjectPhotoGallery = ({
   };
 
   const [initialDisplayCount] = useState(getInitialDisplayCount());
-  const displayPhotos = showAllPhotos ? projectPhotos : projectPhotos.slice(0, initialDisplayCount);
-  const hasMorePhotos = projectPhotos.length > initialDisplayCount;
+  const displayPhotos = showAllPhotos ? realPhotos : realPhotos.slice(0, initialDisplayCount);
+  const hasMorePhotos = realPhotos.length > initialDisplayCount;
 
   return (
     <>
@@ -166,7 +193,7 @@ const ProjectPhotoGallery = ({
           <div className="flex justify-between items-start">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
               <Camera className="mr-2" size={18} />
-              Project Photos ({projectPhotos.length})
+              Project Photos ({realPhotos.length})
             </h2>
           </div>
 
@@ -183,16 +210,17 @@ const ProjectPhotoGallery = ({
           </div>
         </div>
 
-        {/* No Photos State */}
-        {projectPhotos.length === 0 ? (
+        {/* No Real Photos State - Clean placeholder text only */}
+        {!hasRealPhotos ? (
           <div className="text-center py-8 text-gray-500 dark:text-gray-400">
             <Camera className="mx-auto mb-3 text-gray-400" size={32} />
             <p className="mb-3">No photos added yet</p>
+            <p className="text-sm text-gray-400">Upload photos to bring your project to life</p>
           </div>
         ) : (
           <>
-            {/* Cover Photo Section - More reasonable size */}
-            {coverPhotoURL && (
+            {/* Cover Photo Section - Show default image as cover if no real photos, otherwise show real cover */}
+            {(coverPhotoURL || hasOnlyDefaultImages) && (
               <div className="mb-6">
                 <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center">
                   <Star className="mr-1 text-yellow-500" size={14} />
@@ -201,27 +229,31 @@ const ProjectPhotoGallery = ({
 
                 {/* Responsive cover photo container */}
                 <div className="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 max-w-xs">
-                  {/* Cover Photo Display - Reasonable aspect ratio */}
+                  {/* Cover Photo Display - Show default if only defaults exist, otherwise real cover */}
                   <div className="aspect-[4/3] rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 border-2 border-yellow-200 dark:border-yellow-600">
                     <img
-                      src={coverPhotoURL}
+                      src={hasRealPhotos && !isDefaultImage(coverPhotoURL) ? coverPhotoURL : getPhotoUrl(projectPhotos[0])}
                       alt="Project cover"
                       className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-200"
                       onClick={() => {
-                        const coverPhoto = projectPhotos.find(p => getPhotoUrl(p) === coverPhotoURL);
-                        handleLightboxOpen(coverPhoto || coverPhotoURL);
+                        if (hasRealPhotos && !isDefaultImage(coverPhotoURL)) {
+                          const coverPhoto = realPhotos.find(p => getPhotoUrl(p) === coverPhotoURL);
+                          handleLightboxOpen(coverPhoto || coverPhotoURL);
+                        }
                       }}
                     />
                   </div>
 
-                  {/* Change Cover Button */}
-                  <button
-                    onClick={() => setShowCoverModal(true)}
-                    className="mt-2 w-full btn-tertiary btn-sm flex items-center justify-center gap-2"
-                  >
-                    <Edit size={14} />
-                    Change
-                  </button>
+                  {/* Change Cover Button - Only show if we have multiple real photos */}
+                  {realPhotos.length > 1 && (
+                    <button
+                      onClick={() => setShowCoverModal(true)}
+                      className="mt-2 w-full btn-tertiary btn-sm flex items-center justify-center gap-2"
+                    >
+                      <Edit size={14} />
+                      Change
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -286,7 +318,7 @@ const ProjectPhotoGallery = ({
                   ) : (
                     <>
                       <Eye size={16} />
-                      See All ({projectPhotos.length - initialDisplayCount} more)
+                      See All ({realPhotos.length - initialDisplayCount} more)
                     </>
                   )}
                 </button>
@@ -314,7 +346,7 @@ const ProjectPhotoGallery = ({
         }}
       />
 
-      {/* Cover Photo Selection Modal */}
+      {/* Cover Photo Selection Modal - Only show real photos */}
       {showCoverModal && (
         <div className="modal-backdrop" onClick={() => setShowCoverModal(false)}>
           <div className="modal-content max-w-2xl" onClick={(e) => e.stopPropagation()}>
@@ -330,9 +362,9 @@ const ProjectPhotoGallery = ({
               </button>
             </div>
 
-            {/* Modal grid - smaller photos */}
+            {/* Modal grid - smaller photos, only real photos */}
             <div className="grid grid-cols-3 md:grid-cols-4 gap-3 max-h-96 overflow-y-auto">
-              {projectPhotos.map((photo, index) => {
+              {realPhotos.map((photo, index) => {
                 const photoUrl = getPhotoUrl(photo);
                 const isCurrentCover = photoUrl === coverPhotoURL;
 

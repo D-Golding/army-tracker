@@ -1,4 +1,4 @@
-// hooks/useProjectDetail.js - Add photo metadata updating capability
+// hooks/useProjectDetail.js - Updated with title, difficulty, and status editing
 import { useState, useEffect } from 'react';
 import { useProjectOperations } from './useProjects';
 import { useGamificationOperations } from './useGamification';
@@ -7,7 +7,9 @@ import {
   removeProjectPhotoById,
   updateProjectCoverPhoto,
   updateProjectPhotoMetadata,
-  updateProjectDescription
+  updateProjectDescription,
+  updateProjectTitle,
+  updateProjectDifficulty
 } from '../services/projects/index.js';
 
 export const useProjectDetail = (project, projectId, refetch) => {
@@ -15,8 +17,9 @@ export const useProjectDetail = (project, projectId, refetch) => {
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [editDescription, setEditDescription] = useState('');
   const [isUpdatingDescription, setIsUpdatingDescription] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  const { addPaints, removePaint, addStep, updateStep, deleteStep, reorderSteps } = useProjectOperations();
+  const { addPaints, removePaint, addStep, updateStep, deleteStep, reorderSteps, updateStatus } = useProjectOperations();
   const { triggerForAction } = useGamificationOperations();
 
   // Initialize project photos when project data loads - HANDLE BOTH OLD AND NEW FORMATS
@@ -62,13 +65,73 @@ export const useProjectDetail = (project, projectId, refetch) => {
     }
   }, [isEditingDescription, project?.description]);
 
+  // NEW: Title update handler
+  const handleTitleUpdate = async (newTitle) => {
+    setIsUpdating(true);
+    try {
+      await updateProjectTitle(project.name, newTitle);
+      await refetch();
+    } catch (error) {
+      console.error('Error updating project title:', error);
+      throw error;
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // NEW: Difficulty update handler
+  const handleDifficultyUpdate = async (newDifficulty) => {
+    setIsUpdating(true);
+    try {
+      await updateProjectDifficulty(project.name, newDifficulty);
+      await refetch();
+    } catch (error) {
+      console.error('Error updating project difficulty:', error);
+      throw error;
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // NEW: Status update handler
+  const handleStatusUpdate = async (newStatus) => {
+    setIsUpdating(true);
+    try {
+      const oldStatus = project?.status;
+      await updateStatus({ projectName: project.name, newStatus });
+
+      // Trigger achievement check for project completion
+      if (newStatus === 'completed' && oldStatus !== 'completed') {
+        try {
+          await triggerForAction('project_completed', {
+            projectName: project.name,
+            projectData: project,
+            previousStatus: oldStatus,
+            newStatus
+          });
+          console.log('🎯 Achievement check triggered for project completion');
+        } catch (achievementError) {
+          console.error('Achievement trigger failed (non-blocking):', achievementError);
+          // Don't fail the status update if achievements fail
+        }
+      }
+
+      await refetch();
+    } catch (error) {
+      console.error('Error updating project status:', error);
+      throw error;
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   // Description handlers
   const handleSaveDescription = async () => {
     setIsUpdatingDescription(true);
     try {
       await updateProjectDescription(project.name, editDescription);
       setIsEditingDescription(false);
-      refetch();
+      await refetch();
     } catch (error) {
       console.error('Error updating description:', error);
       alert('Failed to update description. Please try again.');
@@ -340,6 +403,12 @@ export const useProjectDetail = (project, projectId, refetch) => {
     editDescription,
     setEditDescription,
     isUpdatingDescription,
+    isUpdating,
+
+    // NEW: Title, difficulty, and status handlers
+    handleTitleUpdate,
+    handleDifficultyUpdate,
+    handleStatusUpdate,
 
     // Description handlers
     handleSaveDescription,

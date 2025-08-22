@@ -8,6 +8,27 @@ import { db } from '../../../firebase.js';
 import { getCurrentUserId } from '../utils/projectHelpers.js';
 import { findProjectByName } from '../core/projectQueries.js';
 
+// NEW: Update project title
+export const updateProjectTitle = async (projectName, newTitle) => {
+  if (!newTitle || !newTitle.trim()) {
+    throw new Error("Project title cannot be empty");
+  }
+
+  const project = await findProjectByName(projectName);
+
+  if (!project) {
+    throw new Error("Project not found");
+  }
+
+  const userId = getCurrentUserId();
+  await updateDoc(doc(db, 'users', userId, 'projects', project.id), {
+    name: newTitle.trim(),
+    updatedAt: serverTimestamp()
+  });
+
+  return `Project "${projectName}" title updated to "${newTitle.trim()}"`;
+};
+
 export const updateProjectDifficulty = async (projectName, newDifficulty) => {
   const validDifficulties = ["beginner", "intermediate", "advanced", "expert"];
 

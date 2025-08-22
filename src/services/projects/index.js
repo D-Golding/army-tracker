@@ -37,6 +37,7 @@ export {
 } from './features/projectPhotos.js';
 
 export {
+  updateProjectTitle, // NEW: Title updating
   updateProjectDifficulty,
   updateProjectStatus,
   updateProjectDescription

@@ -1,4 +1,4 @@
-// utils/projectValidation.js - Form validation logic
+// utils/projectValidation.js - Updated validation with new fields
 export const validateProjectForm = (formData) => {
   const errors = {};
 
@@ -17,7 +17,7 @@ export const validateProjectForm = (formData) => {
     errors.game = 'Please enter a game name';
   }
 
-  // Note: manufacturer, game, description and difficulty are all optional
+  // Note: manufacturer, game, faction, unitName, description and difficulty are all optional
 
   return {
     isValid: Object.keys(errors).length === 0,
@@ -40,22 +40,26 @@ export const formatProjectData = (formData) => {
     name: formData.name.trim(),
     manufacturer: finalManufacturer || '',
     game: finalGame || '',
+    faction: formData.faction?.trim() || '',
+    unitName: formData.unitName?.trim() || '',
     description: formData.description?.trim() || '',
     difficulty: formData.difficulty || 'beginner',
     status: 'upcoming',
-    requiredPaints: [], // Changed from empty string to empty array
-    photoURLs: [], // Changed from empty string to empty array
-    created: new Date().toISOString() // Changed to ISO format
+    requiredPaints: [],
+    photoURLs: [],
+    created: new Date().toISOString()
   };
 };
 
-// Default form state
+// Default form state - Updated with new fields
 export const getDefaultFormState = () => ({
   name: '',
   manufacturer: '',
   customManufacturer: '',
   game: '',
   customGame: '',
+  faction: '',
+  unitName: '',
   description: '',
   difficulty: 'beginner'
 });

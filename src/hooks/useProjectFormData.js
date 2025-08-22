@@ -1,4 +1,4 @@
-// hooks/useProjectFormData.js - Project wizard form data management - FIXED
+// hooks/useProjectFormData.js - Project wizard form data management - UPDATED with new fields and suggestion recording
 import { useState } from 'react';
 
 export const useProjectFormData = () => {
@@ -12,6 +12,8 @@ export const useProjectFormData = () => {
     customManufacturer: '',
     game: '',
     customGame: '',
+    faction: '', // NEW FIELD
+    unitName: '', // NEW FIELD
     description: '',
 
     // Wizard-specific data
@@ -35,7 +37,9 @@ export const useProjectFormData = () => {
       manufacturer,
       customManufacturer: manufacturer === 'custom' ? prev.customManufacturer : '',
       game: '', // Reset game when manufacturer changes
-      customGame: ''
+      customGame: '',
+      faction: '', // Reset faction when manufacturer changes
+      unitName: '' // Reset unit when manufacturer changes
     }));
   };
 
@@ -44,7 +48,9 @@ export const useProjectFormData = () => {
     setFormData(prev => ({
       ...prev,
       game,
-      customGame: game === 'custom' ? prev.customGame : ''
+      customGame: game === 'custom' ? prev.customGame : '',
+      faction: '', // Reset faction when game changes
+      unitName: '' // Reset unit when game changes
     }));
   };
 
@@ -106,7 +112,7 @@ export const useProjectFormData = () => {
     }));
   };
 
-  // Format data for project creation - FIXED VERSION
+  // Format data for project creation - UPDATED with new fields and suggestion recording
   const getProjectData = () => {
     // Determine final manufacturer and game values - with null checks
     const finalManufacturer = formData.manufacturer === 'custom'
@@ -122,6 +128,8 @@ export const useProjectFormData = () => {
       name: (formData.name || '').trim(),
       manufacturer: finalManufacturer,
       game: finalGame,
+      faction: (formData.faction || '').trim(), // NEW FIELD
+      unitName: (formData.unitName || '').trim(), // NEW FIELD
       description: (formData.description || '').trim(),
       difficulty: formData.difficulty || 'beginner',
       status: 'upcoming',
@@ -158,10 +166,52 @@ export const useProjectFormData = () => {
       }
     });
 
+    // DEBUG: Log what we're about to record
+    console.log('🔍 DEBUG: About to record suggestions with data:', {
+      manufacturer: projectData.manufacturer,
+      game: projectData.game,
+      faction: projectData.faction,
+      unitName: projectData.unitName,
+      hasDataToRecord: Boolean(projectData.manufacturer || projectData.game ||
+                             projectData.faction || projectData.unitName)
+    });
+
+    // NEW: Auto-record suggestions for the database (async, non-blocking)
+    setTimeout(async () => {
+      try {
+        console.log('🔍 DEBUG: setTimeout triggered, starting suggestion recording...');
+
+        // Only record if we have meaningful data to record
+        const hasDataToRecord = projectData.manufacturer || projectData.game ||
+                               projectData.faction || projectData.unitName;
+
+        console.log('🔍 DEBUG: hasDataToRecord:', hasDataToRecord);
+
+        if (hasDataToRecord) {
+          console.log('🔍 DEBUG: Importing suggestion recording function...');
+          const { recordProjectCreationSuggestions } = await import('../services/suggestions/index.js');
+
+          console.log('🔍 DEBUG: Calling recordProjectCreationSuggestions...');
+          const result = await recordProjectCreationSuggestions(projectData);
+
+          console.log('🔍 DEBUG: Recording result:', result);
+
+          if (result.recorded !== false) {
+            console.log(`📝 Project creation suggestions recorded: ${result.successful}/${result.total} successful`);
+          }
+        } else {
+          console.log('🔍 DEBUG: No data to record, skipping suggestion recording');
+        }
+      } catch (error) {
+        console.error('🔍 DEBUG: Error recording project suggestions (non-blocking):', error);
+        // Don't fail project creation if suggestion recording fails
+      }
+    }, 1000); // Delay to not block project creation
+
     return projectData;
   };
 
-  // Reset form to initial state
+  // Reset form to initial state - UPDATED with new fields
   const resetForm = () => {
     setFormData({
       name: '',
@@ -170,6 +220,8 @@ export const useProjectFormData = () => {
       customManufacturer: '',
       game: '',
       customGame: '',
+      faction: '', // NEW FIELD
+      unitName: '', // NEW FIELD
       description: '',
       selectedPaints: [],
       uploadedPhotos: [],
@@ -181,6 +233,26 @@ export const useProjectFormData = () => {
   const isValidName = () => formData.name?.trim().length > 0;
   const isValidDifficulty = () => formData.difficulty?.length > 0;
   const isRequiredFieldsValid = () => isValidName() && isValidDifficulty();
+
+  // NEW: Get suggestion context (for debugging)
+  const getSuggestionContext = () => {
+    const finalManufacturer = formData.manufacturer === 'custom'
+      ? formData.customManufacturer
+      : formData.manufacturer;
+
+    const finalGame = formData.game === 'custom'
+      ? formData.customGame
+      : formData.game;
+
+    return {
+      manufacturer: finalManufacturer,
+      game: finalGame,
+      faction: formData.faction,
+      unitName: formData.unitName,
+      canUseFactionSuggestions: Boolean(finalManufacturer && finalGame),
+      canUseUnitSuggestions: Boolean(finalManufacturer && finalGame && formData.faction)
+    };
+  };
 
   return {
     formData,
@@ -198,6 +270,7 @@ export const useProjectFormData = () => {
     resetForm,
     isValidName,
     isValidDifficulty,
-    isRequiredFieldsValid
+    isRequiredFieldsValid,
+    getSuggestionContext // NEW: For debugging suggestion context
   };
 };

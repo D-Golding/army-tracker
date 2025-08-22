@@ -1,4 +1,4 @@
-// pages/AddProjectPage.jsx - Simplified to just project details
+// pages/AddProjectPage.jsx - Updated with faction and unitName fields and suggestion recording
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus } from 'lucide-react';
@@ -12,7 +12,7 @@ const AddProjectPage = () => {
   const { createProject, isLoading } = useProjectOperations();
   const { triggerForAction } = useGamificationOperations();
 
-  // Form state - just the basic project details
+  // Form state - UPDATED with new fields
   const [formData, setFormData] = useState({
     name: '',
     difficulty: 'beginner',
@@ -20,6 +20,8 @@ const AddProjectPage = () => {
     customManufacturer: '',
     game: '',
     customGame: '',
+    faction: '', // NEW FIELD
+    unitName: '', // NEW FIELD
     description: ''
   });
 
@@ -87,11 +89,13 @@ const AddProjectPage = () => {
         ? (formData.customGame || '').trim()
         : (formData.game || '');
 
-      // Create project data object
+      // Create project data object - UPDATED with new fields
       const projectData = {
         name: formData.name.trim(),
         manufacturer: finalManufacturer,
         game: finalGame,
+        faction: (formData.faction || '').trim(), // NEW FIELD
+        unitName: (formData.unitName || '').trim(), // NEW FIELD
         description: (formData.description || '').trim(),
         difficulty: formData.difficulty || 'beginner',
         status: 'upcoming'
@@ -100,6 +104,40 @@ const AddProjectPage = () => {
       console.log('AddProjectPage: Calling createProject...');
       const result = await createProject(projectData);
       console.log('AddProjectPage: Project created successfully:', result);
+
+      // NEW: Record suggestions for future autocomplete (async, non-blocking)
+      setTimeout(async () => {
+        try {
+          console.log('🔍 DEBUG: Starting suggestion recording for project:', projectData);
+
+          // Only record if we have meaningful data to record
+          const hasDataToRecord = projectData.manufacturer || projectData.game ||
+                                 projectData.faction || projectData.unitName;
+
+          console.log('🔍 DEBUG: hasDataToRecord:', hasDataToRecord);
+
+          if (hasDataToRecord) {
+            console.log('🔍 DEBUG: Importing suggestion recording function...');
+            const { recordProjectCreationSuggestions } = await import('../services/suggestions/index.js');
+
+            console.log('🔍 DEBUG: Calling recordProjectCreationSuggestions with data:', projectData);
+            const suggestionResult = await recordProjectCreationSuggestions(projectData);
+
+            console.log('🔍 DEBUG: Suggestion recording result:', suggestionResult);
+
+            if (suggestionResult.recorded !== false) {
+              console.log(`📝 Project creation suggestions recorded: ${suggestionResult.successful}/${suggestionResult.total} successful`);
+            } else {
+              console.log('📝 No suggestions were recorded:', suggestionResult.reason);
+            }
+          } else {
+            console.log('🔍 DEBUG: No meaningful data to record, skipping suggestion recording');
+          }
+        } catch (suggestionError) {
+          console.error('🔍 DEBUG: Error recording project suggestions (non-blocking):', suggestionError);
+          // Don't fail project creation if suggestion recording fails
+        }
+      }, 500); // Short delay to not block navigation
 
       // Trigger achievement check for project creation
       try {

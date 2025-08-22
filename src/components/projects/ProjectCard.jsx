@@ -1,4 +1,4 @@
-// components/projects/ProjectCard.jsx - Individual Project Display with Actions
+// components/projects/ProjectCard.jsx - Individual Project Display with Actions - UPDATED with faction and unit name
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -10,7 +10,9 @@ import {
   Play,
   Trash2,
   Eye,
-  MoreVertical
+  MoreVertical,
+  Shield,
+  User
 } from 'lucide-react';
 import { showConfirmation } from '../NotificationManager';
 
@@ -191,9 +193,9 @@ const ProjectCard = ({
   return (
     <div className="card-base overflow-hidden">
 
-      {/* Project Photo - UPDATED: Changed to object-contain and white/black background */}
+      {/* Project Photo - Fixed height container */}
       {coverPhoto ? (
-        <div className="aspect-video bg-white dark:bg-gray-800">
+        <div className="h-48 bg-white dark:bg-gray-800 flex-shrink-0">
           <img
             src={coverPhoto}
             alt={project.name || 'Project'}
@@ -211,168 +213,193 @@ const ProjectCard = ({
           />
         </div>
       ) : (
-        <div className="aspect-video bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center">
+        <div className="h-48 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center flex-shrink-0">
           <Camera className="text-gray-400 dark:text-gray-500" size={32} />
         </div>
       )}
 
       <div className="card-padding">
 
-        {/* Header with Status */}
-        <div className="flex justify-between items-start mb-3">
-          <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-lg text-gray-900 dark:text-white truncate">
-              {project.name || 'Untitled Project'}
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 text-xs flex items-center mt-1">
-              <Calendar className="mr-1" size={12} />
-              Created: {formatDateEuropean(project.created)}
-            </p>
-          </div>
+        {/* Flexible content area */}
+        <div className="card-content-flex">
 
-          <div className="flex items-center gap-2 ml-2">
-            <span className={`badge-base ${statusConfig.color} flex items-center gap-1`}>
-              {statusConfig.icon}
-              {statusConfig.label}
-            </span>
+          {/* Header with Status */}
+          <div className="flex justify-between items-start mb-3">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-bold text-lg text-gray-900 dark:text-white truncate">
+                {project.name || 'Untitled Project'}
+              </h3>
 
-            {/* Mobile Menu */}
-            <div className="relative">
-              <button
-                onClick={() => setShowDropdown(!showDropdown)}
-                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-                disabled={isLoading}
-                aria-label="Project actions menu"
-              >
-                <MoreVertical size={16} />
-              </button>
-
-              {showDropdown && (
-                <>
-                  <div className="dropdown-backdrop" onClick={handleBackdropClick}></div>
-                  <div className="dropdown-menu top-8 right-0 w-48">
-
-                    {/* Status Updates */}
-                    {getStatusOptions(project.status).map((status) => {
-                      const statusOpt = getStatusConfig(status);
-                      return (
-                        <button
-                          key={status}
-                          onClick={() => handleStatusUpdate(status)}
-                          className="dropdown-item"
-                          disabled={isLoading}
-                        >
-                          {statusOpt.icon}
-                          Mark {statusOpt.label}
-                        </button>
-                      );
-                    })}
-
-                    <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
-
-                    {/* Other Actions */}
-                    <button
-                      onClick={handleCheckPaints}
-                      className="dropdown-item"
-                      disabled={isLoading}
-                    >
-                      <PaletteIcon size={14} />
-                      Check Paints
-                    </button>
-
-                    <button
-                      onClick={handleDelete}
-                      className="dropdown-item-danger"
-                      disabled={isLoading}
-                    >
-                      <Trash2 size={14} />
-                      Delete Project
-                    </button>
+              {/* NEW: Faction and Unit Name - positioned right under title */}
+              <div className="space-y-1 mt-2">
+                {project.faction && project.faction.trim() && (
+                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 text-sm">
+                    <Shield size={14} className="flex-shrink-0" />
+                    <span className="truncate">{project.faction}</span>
                   </div>
-                </>
-              )}
+                )}
+
+                {project.unitName && project.unitName.trim() && (
+                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 text-sm">
+                    <User size={14} className="flex-shrink-0" />
+                    <span className="truncate">{project.unitName}</span>
+                  </div>
+                )}
+              </div>
+
+              <p className="text-gray-600 dark:text-gray-400 text-xs flex items-center mt-1">
+                <Calendar className="mr-1" size={12} />
+                Created: {formatDateEuropean(project.created)}
+              </p>
             </div>
-          </div>
-        </div>
 
-        {/* Description */}
-        {project.description && (
-          <p className="text-gray-700 dark:text-gray-300 text-sm mb-4 line-clamp-2">
-            {project.description}
-          </p>
-        )}
-
-        {/* Project Metadata */}
-        <div className="space-y-3 mb-4">
-
-          {/* Difficulty Badge */}
-          {project.difficulty && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500 dark:text-gray-400">Difficulty:</span>
-              <span className={`badge-base ${getDifficultyBadgeClass(project.difficulty)}`}>
-                {project.difficulty.charAt(0).toUpperCase() + project.difficulty.slice(1)}
+            <div className="flex items-center gap-2 ml-2">
+              <span className={`badge-base ${statusConfig.color} flex items-center gap-1`}>
+                {statusConfig.icon}
+                {statusConfig.label}
               </span>
-            </div>
-          )}
 
-          {/* Manufacturer and Game */}
-          {(project.manufacturer || project.game) && (
-            <div className="text-xs text-gray-600 dark:text-gray-400">
-              {project.manufacturer && (
-                <span>Manufacturer: {project.manufacturer}</span>
-              )}
-              {project.manufacturer && project.game && <span> • </span>}
-              {project.game && (
-                <span>Game: {project.game}</span>
-              )}
-            </div>
-          )}
+              {/* Mobile Menu */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                  disabled={isLoading}
+                  aria-label="Project actions menu"
+                >
+                  <MoreVertical size={16} />
+                </button>
 
-          {/* Legacy Required Paints */}
-          {projectStats.legacyPaints > 0 && (
-            <div>
-              <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-2 flex items-center">
-                <PaletteIcon className="mr-1" size={14} />
-                Required Paints ({projectStats.legacyPaints})
-              </h4>
-              <div className="flex flex-wrap gap-1">
-                {project.requiredPaints.slice(0, 6).map((paint, index) => (
-                  <span key={index} className="badge-tertiary text-xs">
-                    {paint}
-                  </span>
-                ))}
-                {projectStats.legacyPaints > 6 && (
-                  <span className="badge-tertiary text-xs">
-                    +{projectStats.legacyPaints - 6} more
-                  </span>
+                {showDropdown && (
+                  <>
+                    <div className="dropdown-backdrop" onClick={handleBackdropClick}></div>
+                    <div className="dropdown-menu top-8 right-0 w-48">
+
+                      {/* Status Updates */}
+                      {getStatusOptions(project.status).map((status) => {
+                        const statusOpt = getStatusConfig(status);
+                        return (
+                          <button
+                            key={status}
+                            onClick={() => handleStatusUpdate(status)}
+                            className="dropdown-item"
+                            disabled={isLoading}
+                          >
+                            {statusOpt.icon}
+                            Mark {statusOpt.label}
+                          </button>
+                        );
+                      })}
+
+                      <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+
+                      {/* Other Actions */}
+                      <button
+                        onClick={handleCheckPaints}
+                        className="dropdown-item"
+                        disabled={isLoading}
+                      >
+                        <PaletteIcon size={14} />
+                        Check Paints
+                      </button>
+
+                      <button
+                        onClick={handleDelete}
+                        className="dropdown-item-danger"
+                        disabled={isLoading}
+                      >
+                        <Trash2 size={14} />
+                        Delete Project
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Description */}
+          {project.description && (
+            <p className="text-gray-700 dark:text-gray-300 text-sm mb-4 line-clamp-2">
+              {project.description}
+            </p>
           )}
 
-          {/* Project Statistics */}
-          <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-            {projectStats.steps > 0 && (
-              <span>{projectStats.steps} step{projectStats.steps !== 1 ? 's' : ''}</span>
+          {/* Project Metadata */}
+          <div className="space-y-3 mb-4">
+
+            {/* Difficulty Badge */}
+            {project.difficulty && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Difficulty:</span>
+                <span className={`badge-base ${getDifficultyBadgeClass(project.difficulty)}`}>
+                  {project.difficulty.charAt(0).toUpperCase() + project.difficulty.slice(1)}
+                </span>
+              </div>
             )}
-            {projectStats.photos > 0 && (
-              <span>{projectStats.photos} photo{projectStats.photos !== 1 ? 's' : ''}</span>
+
+            {/* Manufacturer and Game */}
+            {(project.manufacturer || project.game) && (
+              <div className="text-xs text-gray-600 dark:text-gray-400">
+                {project.manufacturer && (
+                  <span>Manufacturer: {project.manufacturer}</span>
+                )}
+                {project.manufacturer && project.game && <span> • </span>}
+                {project.game && (
+                  <span>Game: {project.game}</span>
+                )}
+              </div>
             )}
-            {projectStats.paints > 0 && (
-              <span>{projectStats.paints} paint{projectStats.paints !== 1 ? 's' : ''}</span>
+
+            {/* Legacy Required Paints */}
+            {projectStats.legacyPaints > 0 && (
+              <div>
+                <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-2 flex items-center">
+                  <PaletteIcon className="mr-1" size={14} />
+                  Required Paints ({projectStats.legacyPaints})
+                </h4>
+                <div className="flex flex-wrap gap-1">
+                  {project.requiredPaints.slice(0, 6).map((paint, index) => (
+                    <span key={index} className="badge-tertiary text-xs">
+                      {paint}
+                    </span>
+                  ))}
+                  {projectStats.legacyPaints > 6 && (
+                    <span className="badge-tertiary text-xs">
+                      +{projectStats.legacyPaints - 6} more
+                    </span>
+                  )}
+                </div>
+              </div>
             )}
+
+            {/* Project Statistics */}
+            <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+              {projectStats.steps > 0 && (
+                <span>{projectStats.steps} step{projectStats.steps !== 1 ? 's' : ''}</span>
+              )}
+              {projectStats.photos > 0 && (
+                <span>{projectStats.photos} photo{projectStats.photos !== 1 ? 's' : ''}</span>
+              )}
+              {projectStats.paints > 0 && (
+                <span>{projectStats.paints} paint{projectStats.paints !== 1 ? 's' : ''}</span>
+              )}
+            </div>
           </div>
+
         </div>
 
-        {/* Primary Action */}
-        <Link
-          to={`/app/projects/${project.id}`}
-          className="btn-primary btn-md w-full"
-          aria-label={`View details for ${project.name || 'project'}`}
-        >
-          <Eye size={16} />
-          View Details
-        </Link>
+        {/* Fixed button at bottom */}
+        <div className="card-button-fixed">
+          <Link
+            to={`/app/projects/${project.id}`}
+            className="btn-primary btn-md w-full"
+            aria-label={`View details for ${project.name || 'project'}`}
+          >
+            <Eye size={16} />
+            View Details
+          </Link>
+        </div>
       </div>
     </div>
   );

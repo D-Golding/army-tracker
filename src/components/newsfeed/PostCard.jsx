@@ -1,13 +1,15 @@
-// components/newsfeed/PostCard.jsx - Individual post display with global styling
+// components/newsfeed/PostCard.jsx - Individual post display with video support
 import React, { useState } from 'react';
-import { Heart, MessageCircle, MoreHorizontal, Trash2, Flag } from 'lucide-react';
+import { Heart, MessageCircle, MoreHorizontal, Trash2, Flag, Video, Image } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination } from 'swiper/modules';
+import { useInView } from 'react-intersection-observer';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePostInteractions, useDeletePost } from '../../hooks/useNewsfeed';
 import { formatDistanceToNow } from 'date-fns';
 import PostComments from './PostComments';
 import PhotoModal from './PhotoModal';
+import VideoPlayer from './VideoPlayer';
 
 // Import Swiper styles
 import 'swiper/css';
@@ -18,7 +20,7 @@ const PostCard = ({ post, isAboveFold = false }) => {
   const [showComments, setShowComments] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [newComment, setNewComment] = useState('');
-  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
 
   const { currentUser } = useAuth();
@@ -31,11 +33,31 @@ const PostCard = ({ post, isAboveFold = false }) => {
   } = usePostInteractions(post.id);
   const deletePostMutation = useDeletePost();
 
-  const isOwner = currentUser?.uid === post.authorId;
+  // Intersection observer for video autoplay
+  const { ref: postRef, inView } = useInView({
+    threshold: 0.5, // Video plays when 50% visible
+    triggerOnce: false
+  });
 
-  // Handle both old single photo posts and new multi-photo posts
-  const photos = post.photos || (post.photoData ? [post.photoData] : []);
-  const hasMultiplePhotos = photos.length > 1;
+  const isOwner = currentUser?.uid === post.userId;
+
+  // 🔧 Fix R2 URLs for old posts
+  const fixR2Url = (url) => {
+    if (url?.includes('pub-433f30bb1467ae706c4b5e4686b7dc5e.r2.dev')) {
+      return url.replace(
+        'https://pub-433f30bb1467ae706c4b5e4686b7dc5e.r2.dev/',
+        'https://433f30bb1467ae706c4b5e4686b7dc5e.r2.cloudflarestorage.com/'
+      );
+    }
+    return url;
+  };
+
+  // Handle mixed media - get all media items
+  const mediaItems = post.media || [];
+  const photos = mediaItems.filter(item => item.type === 'photo');
+  const videos = mediaItems.filter(item => item.type === 'video');
+  const hasMultipleMedia = mediaItems.length > 1;
+  const currentMedia = mediaItems[currentMediaIndex];
 
   // Format timestamp
   const getTimeAgo = () => {
@@ -75,34 +97,89 @@ const PostCard = ({ post, isAboveFold = false }) => {
 
   // Handle photo click to open modal
   const handlePhotoClick = (index) => {
-    console.log('Photo clicked, opening modal at index:', index);
-    setCurrentPhotoIndex(index);
+    const photoIndex = photos.findIndex(photo =>
+      mediaItems.findIndex(item => item.url === photo.url) === index
+    );
     setShowPhotoModal(true);
   };
 
   // Handle swiper slide change
   const handleSlideChange = (swiper) => {
-    setCurrentPhotoIndex(swiper.activeIndex);
+    setCurrentMediaIndex(swiper.activeIndex);
+  };
+
+  // Render media item based on type
+  const renderMediaItem = (mediaItem, index, isSingle = false) => {
+    if (mediaItem.type === 'video') {
+      return (
+        <div key={index} className="relative">
+          <VideoPlayer
+            video={{
+              ...mediaItem,
+              url: fixR2Url(mediaItem.url) // 🔧 Fix URL for videos
+            }}
+            isInView={inView && index === currentMediaIndex}
+            className="w-full aspect-video"
+            showControls={true}
+            autoPlay={true}
+            muted={true}
+          />
+        </div>
+      );
+    } else {
+      // Photo
+      return (
+        <div
+          key={index}
+          className="relative group cursor-pointer"
+          onClick={() => handlePhotoClick(index)}
+        >
+          <img
+            src={fixR2Url(mediaItem.url)} // 🔧 Fix URL for photos
+            alt={mediaItem.title || `Post image ${index + 1}`}
+            className="w-full h-auto object-cover transition-transform group-hover:scale-105"
+            loading={isAboveFold ? "eager" : "lazy"}
+          />
+
+          {/* Media type indicator */}
+          <div className="absolute top-2 left-2">
+            <div className="bg-black bg-opacity-60 text-white px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
+              <Image size={12} />
+              PHOTO
+            </div>
+          </div>
+
+          {/* Hover overlay for photos */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-50 text-white p-2 rounded-full">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      );
+    }
   };
 
   return (
     <>
-      <div className="card-base card-padding">
+      <div ref={postRef} className="card-base card-padding">
         {/* Post Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             {/* Author Avatar */}
             <div className="relative">
-              {post.authorData?.photoURL ? (
+              {post.userPhotoURL ? (
                 <img
-                  src={post.authorData.photoURL}
-                  alt={post.authorData.displayName}
+                  src={post.userPhotoURL}
+                  alt={post.userDisplayName}
                   className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
                 />
               ) : (
                 <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
                   <span className="text-white font-medium text-sm">
-                    {post.authorData?.displayName?.charAt(0)?.toUpperCase() || '?'}
+                    {post.userDisplayName?.charAt(0)?.toUpperCase() || '?'}
                   </span>
                 </div>
               )}
@@ -111,11 +188,27 @@ const PostCard = ({ post, isAboveFold = false }) => {
             {/* Author Info */}
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
-                {post.authorData?.displayName || 'Unknown User'}
+                {post.userDisplayName || 'Unknown User'}
               </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {getTimeAgo()}
-              </p>
+              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                <span>{getTimeAgo()}</span>
+                {/* Media type indicators */}
+                {post.hasPhotos && post.hasVideos && (
+                  <span className="flex items-center gap-1">
+                    • <Image size={10} /> <Video size={10} /> Mixed Media
+                  </span>
+                )}
+                {post.hasPhotos && !post.hasVideos && post.photoCount > 1 && (
+                  <span className="flex items-center gap-1">
+                    • <Image size={10} /> {post.photoCount} Photos
+                  </span>
+                )}
+                {post.hasVideos && !post.hasPhotos && post.videoCount > 1 && (
+                  <span className="flex items-center gap-1">
+                    • <Video size={10} /> {post.videoCount} Videos
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -148,7 +241,6 @@ const PostCard = ({ post, isAboveFold = false }) => {
                     ) : (
                       <button
                         onClick={() => {
-                          // TODO: Implement report functionality
                           console.log('Report post');
                           setShowMenu(false);
                         }}
@@ -174,33 +266,15 @@ const PostCard = ({ post, isAboveFold = false }) => {
           </div>
         )}
 
-        {/* Photo Carousel */}
-        {post.type === 'photo' && photos.length > 0 && (
+        {/* Media Carousel */}
+        {mediaItems.length > 0 && (
           <div className="mb-4">
             <div className="relative rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700">
-              {photos.length === 1 ? (
-                // Single photo - clickable to open modal
-                <div
-                  className="relative group cursor-pointer"
-                  onClick={() => handlePhotoClick(0)}
-                >
-                  <img
-                    src={photos[0].imageUrl}
-                    alt={photos[0].title || 'Post image'}
-                    className="w-full h-auto object-cover transition-transform group-hover:scale-105"
-                    loading={isAboveFold ? "eager" : "lazy"}
-                  />
-                  {/* Hover overlay - magnifying glass only, no grey background */}
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-50 text-white p-2 rounded-full">
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
+              {mediaItems.length === 1 ? (
+                // Single media item
+                renderMediaItem(mediaItems[0], 0, true)
               ) : (
-                // Multiple photos - use Swiper with click handling
+                // Multiple media items - use Swiper
                 <Swiper
                   modules={[Navigation, Pagination]}
                   navigation={{
@@ -215,39 +289,17 @@ const PostCard = ({ post, isAboveFold = false }) => {
                   spaceBetween={0}
                   slidesPerView={1}
                   onSlideChange={handleSlideChange}
-                  className="photo-carousel group"
+                  className="media-carousel group"
                   allowTouchMove={true}
                   simulateTouch={true}
                 >
-                  {photos.map((photo, index) => (
+                  {mediaItems.map((mediaItem, index) => (
                     <SwiperSlide key={index}>
-                      <div
-                        className="relative cursor-pointer"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handlePhotoClick(index);
-                        }}
-                      >
-                        <img
-                          src={photo.imageUrl}
-                          alt={photo.title || `Post image ${index + 1}`}
-                          className="w-full h-auto object-cover transition-transform group-hover:scale-105"
-                          loading={isAboveFold ? "eager" : "lazy"}
-                        />
+                      {renderMediaItem(mediaItem, index)}
 
-                        {/* Photo Counter */}
-                        <div className="absolute top-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded-full pointer-events-none">
-                          {index + 1} / {photos.length}
-                        </div>
-
-                        {/* Hover overlay - magnifying glass only, no grey background */}
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-50 text-white p-2 rounded-full">
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                            </svg>
-                          </div>
-                        </div>
+                      {/* Media Counter */}
+                      <div className="absolute top-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded-full pointer-events-none z-10">
+                        {index + 1} / {mediaItems.length}
                       </div>
                     </SwiperSlide>
                   ))}
@@ -259,17 +311,28 @@ const PostCard = ({ post, isAboveFold = false }) => {
               )}
             </div>
 
-            {/* Current Photo Metadata */}
-            {(photos[currentPhotoIndex]?.title || photos[currentPhotoIndex]?.description) && (
+            {/* Current Media Metadata */}
+            {currentMedia && (currentMedia.title || currentMedia.description) && (
               <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                {photos[currentPhotoIndex]?.title && (
+                <div className="flex items-center gap-2 mb-2">
+                  {currentMedia.type === 'video' ? (
+                    <Video size={16} className="text-purple-600" />
+                  ) : (
+                    <Image size={16} className="text-green-600" />
+                  )}
+                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                    {currentMedia.type}
+                  </span>
+                </div>
+
+                {currentMedia.title && (
                   <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-1">
-                    {photos[currentPhotoIndex].title}
+                    {currentMedia.title}
                   </h4>
                 )}
-                {photos[currentPhotoIndex]?.description && (
+                {currentMedia.description && (
                   <p className="text-gray-600 dark:text-gray-400 text-sm">
-                    {photos[currentPhotoIndex].description}
+                    {currentMedia.description}
                   </p>
                 )}
               </div>
@@ -322,6 +385,17 @@ const PostCard = ({ post, isAboveFold = false }) => {
               <span>{post.comments?.count || 0}</span>
             </button>
           </div>
+
+          {/* Media Summary */}
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            {post.hasPhotos && post.hasVideos ? (
+              <span>{post.photoCount} photo{post.photoCount !== 1 ? 's' : ''} • {post.videoCount} video{post.videoCount !== 1 ? 's' : ''}</span>
+            ) : post.hasPhotos ? (
+              <span>{post.photoCount} photo{post.photoCount !== 1 ? 's' : ''}</span>
+            ) : post.hasVideos ? (
+              <span>{post.videoCount} video{post.videoCount !== 1 ? 's' : ''}</span>
+            ) : null}
+          </div>
         </div>
 
         {/* Comments Section */}
@@ -352,7 +426,7 @@ const PostCard = ({ post, isAboveFold = false }) => {
                     'Post'
                   )}
                 </button>
-                </div>
+              </div>
             </form>
 
             {/* Comments List */}
@@ -361,14 +435,20 @@ const PostCard = ({ post, isAboveFold = false }) => {
         )}
       </div>
 
-      {/* Photo Modal */}
-      {showPhotoModal && (
+      {/* Photo Modal - only for photos */}
+      {showPhotoModal && photos.length > 0 && (
         <PhotoModal
           isOpen={showPhotoModal}
           onClose={() => setShowPhotoModal(false)}
-          photos={photos}
-          initialIndex={currentPhotoIndex}
-          postAuthor={post.authorData}
+          photos={photos.map(photo => ({
+            ...photo,
+            imageUrl: fixR2Url(photo.url) // 🔧 Fix URLs in photo modal too
+          }))}
+          initialIndex={0}
+          postAuthor={{
+            displayName: post.userDisplayName,
+            photoURL: post.userPhotoURL
+          }}
         />
       )}
     </>

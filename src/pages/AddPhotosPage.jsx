@@ -1,5 +1,4 @@
-
-// pages/AddPhotosPage.jsx - Simple page wrapper
+// pages/AddPhotosPage.jsx - Updated to use simplified mode
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
@@ -55,7 +54,7 @@ const AddPhotosPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-md mx-auto bg-white dark:bg-gray-800 min-h-screen">
+      <div className="max-w-2xl mx-auto bg-white dark:bg-gray-800 min-h-screen">
         {/* Header */}
         <div className="bg-indigo-600 text-white p-6 pt-12">
           <div className="flex items-center gap-3 mb-4">
@@ -74,7 +73,7 @@ const AddPhotosPage = () => {
           </div>
         </div>
 
-        {/* Wizard Content */}
+        {/* Simplified Upload Content */}
         <div className="p-6">
           <PhotoUploadWizard
             onComplete={handleComplete}
@@ -84,6 +83,7 @@ const AddPhotosPage = () => {
             photoType="project"
             maxPhotos={limits?.photosPerProject || 10}
             enableCropping={true}
+            mode="simplified"
           />
         </div>
       </div>

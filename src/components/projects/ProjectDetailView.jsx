@@ -1,4 +1,4 @@
-// components/projects/ProjectDetailView.jsx
+// components/projects/ProjectDetailView.jsx - Updated to pass handlers to header
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useProject } from '../../hooks/useProjects';
@@ -60,7 +60,7 @@ const ProjectDetailView = () => {
 
   return (
     <div>
-      <ProjectDetailHeader project={project} />
+      <ProjectDetailHeader project={project} handlers={projectHandlers} />
       <ProjectDescriptionSection project={project} handlers={projectHandlers} />
       <ProjectPhotoSection project={project} handlers={projectHandlers} />
       <ProjectPaintSection project={project} handlers={projectHandlers} />

@@ -288,7 +288,7 @@ const ProjectPhotoCropperMobile = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 max-w-sm w-full max-h-[95vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 pb-8 max-w-sm w-full max-h-[95vh] overflow-y-auto">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
           Crop Your Photo
         </h3>
@@ -420,7 +420,7 @@ const ProjectPhotoCropperMobile = ({
         </div>
 
         {/* Actions */}
-        <div className="space-y-3">
+        <div className="space-y-3 pb-4">
           <button
             onClick={handleCrop}
             className="w-full btn-primary btn-md flex items-center justify-center gap-2"

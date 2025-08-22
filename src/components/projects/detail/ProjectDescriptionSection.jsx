@@ -1,6 +1,6 @@
-// components/projects/detail/ProjectDescriptionSection.jsx
+// components/projects/detail/ProjectDescriptionSection.jsx - Fixed save functionality
 import React from 'react';
-import { Edit2, Check } from 'lucide-react';
+import { Edit2, Check, X } from 'lucide-react';
 
 const ProjectDescriptionSection = ({ project, handlers }) => {
   const {
@@ -20,7 +20,7 @@ const ProjectDescriptionSection = ({ project, handlers }) => {
         {!isEditingDescription && (
           <button
             onClick={() => setIsEditingDescription(true)}
-            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             title={project.description ? "Edit description" : "Add description"}
           >
             <Edit2 size={16} />
@@ -37,12 +37,13 @@ const ProjectDescriptionSection = ({ project, handlers }) => {
             placeholder="Add a description for your project..."
             rows="4"
             autoFocus
+            disabled={isUpdatingDescription}
           />
           <div className="flex gap-3">
             <button
               onClick={handleSaveDescription}
               disabled={isUpdatingDescription}
-              className="btn-primary btn-sm"
+              className={`btn-primary btn-sm ${isUpdatingDescription ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {isUpdatingDescription ? (
                 <>
@@ -61,14 +62,17 @@ const ProjectDescriptionSection = ({ project, handlers }) => {
               disabled={isUpdatingDescription}
               className="btn-tertiary btn-sm"
             >
+              <X size={14} />
               Cancel
             </button>
           </div>
         </div>
       ) : (
-        <p className="text-gray-700 dark:text-gray-300">
+        <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
           {project.description || (
-            <span className="text-gray-500 dark:text-gray-400">No description added yet</span>
+            <span className="text-gray-500 dark:text-gray-400 italic">
+              No description added yet. Click the edit button to add one.
+            </span>
           )}
         </p>
       )}

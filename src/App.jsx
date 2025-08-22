@@ -1,4 +1,4 @@
-// App.jsx - Fixed admin blog routing
+// App.jsx - Fixed admin blog routing with R2TestPage added
 import React, { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -35,6 +35,7 @@ const MyPostsPage = lazy(() => import('./pages/MyPostsPage'));
 const BlogPage = lazy(() => import('./pages/BlogPage'));
 const BlogAdmin = lazy(() => import('./components/admin/BlogAdmin'));
 const BlogEditor = lazy(() => import('./components/blog/BlogEditor'));
+const R2TestPage = lazy(() => import('./pages/R2TestPage'));
 
 // Loading Spinner Component for Lazy Loading
 const LazyLoadingSpinner = () => (
@@ -71,6 +72,16 @@ const AppRouter = () => {
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<LandingPage />} />
+
+      {/* R2 Test Route - TESTING ONLY */}
+      <Route
+        path="/r2-test"
+        element={
+          <Suspense fallback={<LazyLoadingSpinner />}>
+            <R2TestPage />
+          </Suspense>
+        }
+      />
 
       {/* Account Recovery Route - Public, no auth required */}
       <Route path="/account-recovery" element={<AccountRecovery />} />
